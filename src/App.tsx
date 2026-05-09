@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Plus } from "lucide-react";
+import { Maximize2, Minimize2, Plus } from "lucide-react";
 import { MemoryCard } from "@/components/MemoryCard";
 import { FullscreenView } from "@/components/FullscreenView";
 import { CreateCollectionDialog } from "@/components/CreateCollectionDialog";
@@ -9,7 +9,12 @@ import { SettingsPanel } from "@/components/SettingsPanel";
 import { SortPanel } from "@/components/SortPanel";
 import { IntroOverlay } from "@/components/IntroOverlay";
 import { Button } from "@/components/ui/button";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { initialCollections } from "@/data";
 import { DEFAULT_SETTINGS, type Collection, type Settings } from "@/types";
 import { patternBackground } from "@/lib/pattern";
@@ -126,15 +131,40 @@ export default function App() {
         </p>
       </div>
 
-      {/* Top-left: Settings + Sort, stacked vertically */}
-      <div className="absolute left-6 top-5 z-40 flex flex-col gap-2">
-        <SettingsPanel
-          settings={settings}
-          onChange={setSettings}
-          onMinimizeAll={minimizeAll}
-          onRestoreAll={restoreAll}
-        />
+      {/* Top-left: Settings, Sort, then bulk-action buttons (with a 50px gap
+          to set them apart from the panel openers above). */}
+      <div className="absolute left-6 top-5 z-40 flex flex-col items-start gap-2">
+        <SettingsPanel settings={settings} onChange={setSettings} />
         <SortPanel onSort={sortCards} />
+
+        <div className="mt-[50px] flex flex-col gap-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={minimizeAll}
+                aria-label="Minimize all"
+                className="grid h-9 w-9 place-items-center rounded-full border border-white/30 bg-white/20 text-white backdrop-blur-md transition hover:bg-white/30 active:scale-95"
+              >
+                <Minimize2 className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Minimize all</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={restoreAll}
+                aria-label="Restore all"
+                className="grid h-9 w-9 place-items-center rounded-full border border-white/30 bg-white/20 text-white backdrop-blur-md transition hover:bg-white/30 active:scale-95"
+              >
+                <Maximize2 className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Restore all</TooltipContent>
+          </Tooltip>
+        </div>
       </div>
 
       {/* Top-right: Create */}
@@ -158,9 +188,9 @@ export default function App() {
         </h1>
       </div>
 
-      {/* Sin-wave overlay — fades in during the intro and stays visible
-          afterwards, gently moving in the background. */}
-      <IntroOverlay visible />
+      {/* Sin-wave overlay — fades in during the intro and stays as ambient
+          motion afterwards. Toggleable from settings. */}
+      <IntroOverlay visible={settings.showWaves} />
 
       {/* Card canvas */}
       <div

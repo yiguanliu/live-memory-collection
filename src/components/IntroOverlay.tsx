@@ -38,7 +38,9 @@ type Props = {
 export function IntroOverlay({ visible }: Props) {
   return (
     <motion.div
-      className="pointer-events-none absolute inset-0 z-[5]"
+      // No z-index — let the wave stack at its natural document order,
+      // behind the cards canvas which comes after it in the App tree.
+      className="pointer-events-none absolute inset-0"
       initial={{ opacity: 0 }}
       animate={{ opacity: visible ? 1 : 0 }}
       transition={{ duration: visible ? 0.7 : 0.9, ease: "easeOut" }}

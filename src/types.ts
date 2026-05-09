@@ -6,6 +6,7 @@ export type Settings = {
   pattern: PatternType;
   density: number; // px between pattern points; also the snap step
   snap: boolean;
+  showWaves: boolean;
 };
 
 export type Collection = {
@@ -26,4 +27,5 @@ export const DEFAULT_SETTINGS: Settings = {
   pattern: "dot",
   density: 32,
   snap: true,
+  showWaves: true,
 };
