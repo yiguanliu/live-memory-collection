@@ -168,7 +168,7 @@ export function MemoryCard({
       whileHover={isMinimized ? { scale: 1.12 } : {}}
       transition={SPRING}
       className={cn(
-        "absolute overflow-hidden select-none touch-none border border-white peach-frame",
+        "group absolute overflow-hidden select-none touch-none border border-white peach-frame",
         isDragging ? "cursor-grabbing" : "cursor-grab"
       )}
     >
@@ -399,9 +399,9 @@ function NormalCard({
         </div>
       )}
 
-      {/* Bottom action row */}
+      {/* Bottom action row — fades in on card hover */}
       <div
-        className="absolute inset-x-0 bottom-7 flex items-center justify-center gap-10 text-white"
+        className="absolute inset-x-0 bottom-7 flex items-center justify-center gap-10 text-white opacity-0 pointer-events-none transition-opacity duration-200 ease-out group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto"
         onPointerDown={(e) => e.stopPropagation()}
       >
         <Tooltip>
