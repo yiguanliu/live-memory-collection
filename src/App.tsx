@@ -131,40 +131,36 @@ export default function App() {
         </p>
       </div>
 
-      {/* Top-left: Settings, Sort, then bulk-action buttons (with a 50px gap
-          to set them apart from the panel openers above). */}
-      <div className="absolute left-6 top-5 z-40 flex flex-col items-start gap-2">
+      {/* Left rail: vertically centered toolbar with even spacing. */}
+      <div className="absolute left-6 top-1/2 z-40 flex -translate-y-1/2 flex-col items-start gap-2">
         <SettingsPanel settings={settings} onChange={setSettings} />
         <SortPanel onSort={sortCards} />
-
-        <div className="mt-[50px] flex flex-col gap-2">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                onClick={minimizeAll}
-                aria-label="Minimize all"
-                className="grid h-9 w-9 place-items-center rounded-full border border-white/30 bg-white/20 text-white backdrop-blur-md transition hover:bg-white/30 active:scale-95"
-              >
-                <Minimize2 className="h-4 w-4" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right">Minimize all</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                onClick={restoreAll}
-                aria-label="Restore all"
-                className="grid h-9 w-9 place-items-center rounded-full border border-white/30 bg-white/20 text-white backdrop-blur-md transition hover:bg-white/30 active:scale-95"
-              >
-                <Maximize2 className="h-4 w-4" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right">Restore all</TooltipContent>
-          </Tooltip>
-        </div>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={minimizeAll}
+              aria-label="Minimize all"
+              className="grid h-9 w-9 place-items-center rounded-full border border-white/30 bg-white/20 text-white backdrop-blur-md transition hover:bg-white/30 active:scale-95"
+            >
+              <Minimize2 className="h-4 w-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right">Minimize all</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={restoreAll}
+              aria-label="Restore all"
+              className="grid h-9 w-9 place-items-center rounded-full border border-white/30 bg-white/20 text-white backdrop-blur-md transition hover:bg-white/30 active:scale-95"
+            >
+              <Maximize2 className="h-4 w-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right">Restore all</TooltipContent>
+        </Tooltip>
       </div>
 
       {/* Top-right: Create */}
