@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import {
   AnimatePresence,
+  animate,
   motion,
   useMotionValue,
   type PanInfo,
@@ -78,9 +79,17 @@ export function MemoryCard({
     onChangeRef.current = onChange;
   });
 
+  // Sync motion values with prop position. If they're already in sync
+  // (e.g. just after a drag ends, or after the resize-clamp set them),
+  // skip — otherwise animate so sort/arrange actions flow smoothly to
+  // the new position.
   useEffect(() => {
-    x.set(position.x);
-    y.set(position.y);
+    const cx = x.get();
+    const cy = y.get();
+    if (Math.abs(cx - position.x) > 0.5 || Math.abs(cy - position.y) > 0.5) {
+      animate(x, position.x, { type: "spring", stiffness: 220, damping: 28 });
+      animate(y, position.y, { type: "spring", stiffness: 220, damping: 28 });
+    }
   }, [position.x, position.y, x, y]);
 
   const [dragConstraints, setDragConstraints] = useState({

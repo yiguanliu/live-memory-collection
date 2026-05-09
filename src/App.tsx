@@ -6,12 +6,14 @@ import { FullscreenView } from "@/components/FullscreenView";
 import { CreateCollectionDialog } from "@/components/CreateCollectionDialog";
 import { AddPhotosDialog } from "@/components/AddPhotosDialog";
 import { SettingsPanel } from "@/components/SettingsPanel";
+import { SortPanel } from "@/components/SortPanel";
 import { IntroOverlay } from "@/components/IntroOverlay";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { initialCollections } from "@/data";
 import { DEFAULT_SETTINGS, type Collection, type Settings } from "@/types";
 import { patternBackground } from "@/lib/pattern";
+import { computeSortedPositions, type SortMode } from "@/lib/layout";
 
 type IntroPhase = "wave" | "dots" | "expand" | "done";
 
@@ -51,6 +53,19 @@ export default function App() {
     );
   const deleteCollection = (id: string) =>
     setCollections((prev) => prev.filter((c) => c.id !== id));
+
+  const sortCards = (mode: SortMode) => {
+    const el = canvasRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    setCollections((prev) => {
+      const positions = computeSortedPositions(prev, mode, r.width, r.height);
+      return prev.map((c) => {
+        const p = positions.get(c.id);
+        return p ? { ...c, position: p } : c;
+      });
+    });
+  };
 
   const updateCollection = (id: string, patch: Partial<Collection>) => {
     setCollections((prev) =>
@@ -111,14 +126,15 @@ export default function App() {
         </p>
       </div>
 
-      {/* Top-left: Settings */}
-      <div className="absolute left-6 top-5 z-40">
+      {/* Top-left: Settings + Sort, stacked vertically */}
+      <div className="absolute left-6 top-5 z-40 flex flex-col gap-2">
         <SettingsPanel
           settings={settings}
           onChange={setSettings}
           onMinimizeAll={minimizeAll}
           onRestoreAll={restoreAll}
         />
+        <SortPanel onSort={sortCards} />
       </div>
 
       {/* Top-right: Create */}
@@ -142,8 +158,9 @@ export default function App() {
         </h1>
       </div>
 
-      {/* Sin-wave intro overlay */}
-      <IntroOverlay visible={intro !== "done"} />
+      {/* Sin-wave overlay — fades in during the intro and stays visible
+          afterwards, gently moving in the background. */}
+      <IntroOverlay visible />
 
       {/* Card canvas */}
       <div
