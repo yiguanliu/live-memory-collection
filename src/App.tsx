@@ -49,6 +49,8 @@ export default function App() {
         c.state === "fullscreen" ? c : { ...c, state: "normal" }
       )
     );
+  const deleteCollection = (id: string) =>
+    setCollections((prev) => prev.filter((c) => c.id !== id));
 
   const updateCollection = (id: string, patch: Partial<Collection>) => {
     setCollections((prev) =>
@@ -155,25 +157,28 @@ export default function App() {
           animate={{ opacity: intro === "wave" ? 0 : 1 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
         >
-          {collections.map((c) => {
-            const introMinimize =
-              (intro === "wave" || intro === "dots") &&
-              c.state === "normal";
-            const display: Collection = introMinimize
-              ? { ...c, state: "minimized" }
-              : c;
-            return (
-              <MemoryCard
-                key={c.id}
-                collection={display}
-                canvasRef={canvasRef}
-                settings={settings}
-                onChange={(patch) => updateCollection(c.id, patch)}
-                onFocus={() => focusCollection(c.id)}
-                onAddPhotos={() => setAddingTo(c.id)}
-              />
-            );
-          })}
+          <AnimatePresence>
+            {collections.map((c) => {
+              const introMinimize =
+                (intro === "wave" || intro === "dots") &&
+                c.state === "normal";
+              const display: Collection = introMinimize
+                ? { ...c, state: "minimized" }
+                : c;
+              return (
+                <MemoryCard
+                  key={c.id}
+                  collection={display}
+                  canvasRef={canvasRef}
+                  settings={settings}
+                  onChange={(patch) => updateCollection(c.id, patch)}
+                  onFocus={() => focusCollection(c.id)}
+                  onAddPhotos={() => setAddingTo(c.id)}
+                  onDelete={() => deleteCollection(c.id)}
+                />
+              );
+            })}
+          </AnimatePresence>
         </motion.div>
       </div>
 

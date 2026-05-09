@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import {
   AnimatePresence,
   motion,
@@ -11,7 +11,9 @@ import {
   Contrast,
   GripVertical,
   Plus,
+  Trash2,
   User,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { snapTo } from "@/lib/pattern";
@@ -33,6 +35,7 @@ type Props = {
   onChange: (next: Partial<Collection>) => void;
   onFocus: () => void;
   onAddPhotos: () => void;
+  onDelete: () => void;
 };
 
 const SPRING = {
@@ -65,12 +68,19 @@ export function MemoryCard({
   onChange,
   onFocus,
   onAddPhotos,
+  onDelete,
 }: Props) {
   const { state, photos, photoIndex, size, position, name, date, label } =
     collection;
 
   const x = useMotionValue(position.x);
   const y = useMotionValue(position.y);
+
+  // Stable ref for onChange so the resize effect doesn't re-bind on every parent render.
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  });
 
   useEffect(() => {
     x.set(position.x);
@@ -84,24 +94,38 @@ export function MemoryCard({
     bottom: 0,
   });
 
-  useEffect(() => {
+  // Compute drag bounds from canvas size and clamp the current position into
+  // them. Runs synchronously after layout so initial paint already shows
+  // any out-of-viewport seed positions clamped into view.
+  useLayoutEffect(() => {
     const recompute = () => {
       const el = canvasRef.current;
       if (!el) return;
       const r = el.getBoundingClientRect();
       const w = state === "minimized" ? 28 : size.w;
       const h = state === "minimized" ? 28 : size.h;
-      setDragConstraints({
-        left: margin,
-        top: margin,
-        right: Math.max(margin, r.width - w - margin),
-        bottom: Math.max(margin, r.height - h - margin),
-      });
+
+      const minX = margin;
+      const minY = margin;
+      const maxX = Math.max(margin, r.width - w - margin);
+      const maxY = Math.max(margin, r.height - h - margin);
+
+      setDragConstraints({ left: minX, top: minY, right: maxX, bottom: maxY });
+
+      const cx = x.get();
+      const cy = y.get();
+      const nx = Math.min(Math.max(cx, minX), maxX);
+      const ny = Math.min(Math.max(cy, minY), maxY);
+      if (nx !== cx || ny !== cy) {
+        x.set(nx);
+        y.set(ny);
+        onChangeRef.current({ position: { x: nx, y: ny } });
+      }
     };
     recompute();
     window.addEventListener("resize", recompute);
     return () => window.removeEventListener("resize", recompute);
-  }, [canvasRef, margin, size.w, size.h, state]);
+  }, [canvasRef, margin, size.w, size.h, state, x, y]);
 
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
@@ -167,9 +191,21 @@ export function MemoryCard({
           ? "0 4px 10px rgba(0, 0, 0, 0.25)"
           : "0 5px 15px 3px rgba(0, 0, 0, 0.1)",
       }}
+      exit={{ scale: 0.4, opacity: 0 }}
       whileTap={isMinimized ? { scale: 1.08 } : { scale: 0.99 }}
       whileHover={isMinimized ? { scale: 1.12 } : {}}
-      transition={SPRING}
+      transition={{
+        // Spring drives the snappy size morph...
+        default: SPRING,
+        // ...but border-radius uses a tween. A spring on border-radius can
+        // settle into a non-target equilibrium when its initial velocity is
+        // high (e.g. when minimize/restore changes width and radius at the
+        // same time), leaving the card visibly oval until the next render
+        // forces a re-evaluation. A time-based tween always reaches its
+        // target.
+        borderRadius: { type: "tween", duration: 0.32, ease: "easeOut" },
+        opacity: { duration: 0.25, ease: "easeOut" },
+      }}
       className={cn(
         "group/card absolute overflow-hidden select-none touch-none border border-white peach-frame",
         isDragging ? "cursor-grabbing" : "cursor-grab"
@@ -190,6 +226,7 @@ export function MemoryCard({
           onMinimize={() => onChange({ state: "minimized" })}
           onFullscreen={() => onChange({ state: "fullscreen" })}
           onAddPhotos={onAddPhotos}
+          onDelete={onDelete}
           onResizeStart={() => setIsResizing(true)}
           onResizeEnd={() => setIsResizing(false)}
           onResize={(dw, dh) => {
@@ -272,6 +309,7 @@ function NormalCard({
   onMinimize,
   onFullscreen,
   onAddPhotos,
+  onDelete,
   onResizeStart,
   onResizeEnd,
   onResize,
@@ -286,6 +324,7 @@ function NormalCard({
   onMinimize: () => void;
   onFullscreen: () => void;
   onAddPhotos: () => void;
+  onDelete: () => void;
   onResizeStart: () => void;
   onResizeEnd: () => void;
   onResize: (dw: number, dh: number) => void;
@@ -293,6 +332,9 @@ function NormalCard({
   onNext: () => void;
 }) {
   const hasMany = collection.photos.length > 1;
+
+  // Two-stage delete confirm state for the iOS-style red dot top-right.
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   // Slide direction for the photo carousel: +1 = next, -1 = prev.
   const [photoDir, setPhotoDir] = useState(1);
@@ -361,6 +403,22 @@ function NormalCard({
         onMinimize={onMinimize}
         onFullscreen={onFullscreen}
       />
+
+      {/* Top-right: iOS-style red delete dot — same hover-fade as the others */}
+      <div
+        className="absolute right-3 top-3 z-20 opacity-0 pointer-events-none transition-opacity duration-200 ease-out group-hover/card:opacity-100 group-hover/card:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto"
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <CardDeleteDot
+          confirming={confirmingDelete}
+          onArm={() => setConfirmingDelete(true)}
+          onCancel={() => setConfirmingDelete(false)}
+          onConfirm={() => {
+            setConfirmingDelete(false);
+            onDelete();
+          }}
+        />
+      </div>
 
       {/* Centered drag indicator — fades in on card hover so the photo
           stays uncluttered at rest. */}
@@ -495,5 +553,68 @@ function NormalCard({
         </svg>
       </div>
     </motion.div>
+  );
+}
+
+// ============================================================
+// Delete dot (top-right) — matches the iOS/macOS traffic-light
+// styling of WindowControls. Click → expands into a confirm pill.
+// ============================================================
+
+function CardDeleteDot({
+  confirming,
+  onArm,
+  onCancel,
+  onConfirm,
+}: {
+  confirming: boolean;
+  onArm: () => void;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <AnimatePresence mode="popLayout" initial={false}>
+      {confirming ? (
+        <motion.div
+          key="confirm"
+          initial={{ opacity: 0, scale: 0.85, x: 6 }}
+          animate={{ opacity: 1, scale: 1, x: 0 }}
+          exit={{ opacity: 0, scale: 0.85, x: 6 }}
+          transition={{ type: "spring", stiffness: 380, damping: 26 }}
+          className="flex items-center gap-1 rounded-full border border-white/20 bg-black/70 px-1 py-0.5 backdrop-blur-md"
+        >
+          <button
+            onClick={onCancel}
+            className="grid h-5 w-5 place-items-center rounded-full text-white/85 transition hover:bg-white/15 active:scale-90"
+            aria-label="Cancel delete"
+          >
+            <X className="h-3 w-3" />
+          </button>
+          <button
+            onClick={onConfirm}
+            className="grid h-5 w-5 place-items-center rounded-full bg-red-500 text-white shadow-sm transition hover:bg-red-400 active:scale-90"
+            aria-label="Confirm delete"
+          >
+            <Trash2 className="h-2.5 w-2.5" />
+          </button>
+        </motion.div>
+      ) : (
+        <motion.button
+          key="dot"
+          onClick={onArm}
+          aria-label="Delete collection"
+          className="group/dot relative flex h-3 w-3 items-center justify-center rounded-full bg-[#ff5f57] shadow-[0_0_0_0.5px_rgba(0,0,0,0.15)] transition-transform hover:scale-110 active:scale-90"
+          initial={{ opacity: 0, scale: 0.85 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.85 }}
+          transition={{ type: "spring", stiffness: 380, damping: 26 }}
+        >
+          <X
+            strokeWidth={3}
+            className="h-2 w-2 text-stone-800/70 opacity-0 transition-opacity group-hover/dot:opacity-100"
+          />
+        </motion.button>
+      )}
+    </AnimatePresence>
   );
 }
