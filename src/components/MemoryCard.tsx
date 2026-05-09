@@ -154,10 +154,13 @@ export function MemoryCard({
       onDragEnd={handleDragEnd}
       onPointerDown={onFocus}
       style={{ x, y, zIndex: collection.z }}
+      initial={{ scale: 0.4, opacity: 0 }}
       animate={{
         width: renderW,
         height: renderH,
         borderRadius: radius,
+        scale: 1,
+        opacity: 1,
         boxShadow: isDragging
           ? "0 30px 60px -10px rgba(0, 0, 0, 0.35), 0 12px 25px rgba(0, 0, 0, 0.18)"
           : isMinimized
