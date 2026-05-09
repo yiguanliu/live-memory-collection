@@ -1,14 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Maximize2, Minimize2, Plus } from "lucide-react";
+import { Maximize2, Minimize2 } from "lucide-react";
 import { MemoryCard } from "@/components/MemoryCard";
 import { FullscreenView } from "@/components/FullscreenView";
-import { CreateCollectionDialog } from "@/components/CreateCollectionDialog";
+import {
+  CreateCollectionPopover,
+  type NewCollectionInput,
+} from "@/components/CreateCollectionPopover";
 import { AddPhotosDialog } from "@/components/AddPhotosDialog";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { SortPanel } from "@/components/SortPanel";
 import { IntroOverlay } from "@/components/IntroOverlay";
-import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
@@ -19,13 +21,13 @@ import { initialCollections } from "@/data";
 import { DEFAULT_SETTINGS, type Collection, type Settings } from "@/types";
 import { patternBackground } from "@/lib/pattern";
 import { computeSortedPositions, type SortMode } from "@/lib/layout";
+import { uid } from "@/lib/utils";
 
 type IntroPhase = "wave" | "dots" | "expand" | "done";
 
 export default function App() {
   const [collections, setCollections] = useState<Collection[]>(initialCollections);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
-  const [createOpen, setCreateOpen] = useState(false);
   const [addingTo, setAddingTo] = useState<string | null>(null);
   const [intro, setIntro] = useState<IntroPhase>("wave");
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -58,6 +60,31 @@ export default function App() {
     );
   const deleteCollection = (id: string) =>
     setCollections((prev) => prev.filter((c) => c.id !== id));
+
+  const handleCreateCollection = (input: NewCollectionInput) => {
+    const el = canvasRef.current;
+    const w = el?.clientWidth ?? 1024;
+    const h = el?.clientHeight ?? 768;
+    setCollections((prev) => {
+      const maxZ = prev.reduce((m, c) => Math.max(m, c.z), 0);
+      const collection: Collection = {
+        id: uid(),
+        name: input.name,
+        date: input.date,
+        label: input.label,
+        photos: input.photos,
+        position: {
+          x: w / 2 - 110 + Math.random() * 40,
+          y: h / 2 - 140 + Math.random() * 40,
+        },
+        size: { w: 220, h: 280 },
+        state: "normal",
+        photoIndex: 0,
+        z: maxZ + 1,
+      };
+      return [...prev, collection];
+    });
+  };
 
   const sortCards = (mode: SortMode) => {
     const el = canvasRef.current;
@@ -94,20 +121,6 @@ export default function App() {
       return prev.map((c) => ({ ...c, z: ranked.get(c.id)! }));
     });
   };
-
-  const nextZ = useMemo(
-    () => collections.reduce((m, c) => Math.max(m, c.z), 0) + 1,
-    [collections]
-  );
-
-  const spawnPosition = useMemo(() => {
-    const w = canvasRef.current?.clientWidth ?? 1024;
-    const h = canvasRef.current?.clientHeight ?? 768;
-    return {
-      x: w / 2 - 110 + Math.random() * 40,
-      y: h / 2 - 140 + Math.random() * 40,
-    };
-  }, [createOpen]);
 
   const addingCollection = collections.find((c) => c.id === addingTo);
 
@@ -163,16 +176,10 @@ export default function App() {
         </Tooltip>
       </div>
 
-      {/* Top-right: Create */}
-      <div className="absolute right-6 top-5 z-40">
-        <Button
-          variant="primary"
-          onClick={() => setCreateOpen(true)}
-          className="shadow-lg"
-        >
-          <Plus />
-          New collection
-        </Button>
+      {/* Right rail: vertically centered, mirrors the left rail. Holds the
+          New-collection trigger (which opens an anchored popover form). */}
+      <div className="absolute right-6 top-1/2 z-40 flex -translate-y-1/2 flex-col items-end gap-2">
+        <CreateCollectionPopover onCreate={handleCreateCollection} />
       </div>
 
       {/* Bottom title */}
@@ -267,14 +274,6 @@ export default function App() {
             />
           ))}
       </AnimatePresence>
-
-      <CreateCollectionDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        onCreate={(c) => setCollections((prev) => [...prev, c])}
-        spawnPosition={spawnPosition}
-        nextZ={nextZ}
-      />
 
       <AddPhotosDialog
         open={addingTo !== null}
