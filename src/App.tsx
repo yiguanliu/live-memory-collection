@@ -1,23 +1,54 @@
-import { useMemo, useRef, useState } from "react";
-import { AnimatePresence } from "framer-motion";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { MemoryCard } from "@/components/MemoryCard";
 import { FullscreenView } from "@/components/FullscreenView";
 import { CreateCollectionDialog } from "@/components/CreateCollectionDialog";
 import { AddPhotosDialog } from "@/components/AddPhotosDialog";
 import { SettingsPanel } from "@/components/SettingsPanel";
+import { IntroOverlay } from "@/components/IntroOverlay";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { initialCollections } from "@/data";
 import { DEFAULT_SETTINGS, type Collection, type Settings } from "@/types";
 import { patternBackground } from "@/lib/pattern";
 
+type IntroPhase = "wave" | "dots" | "expand" | "done";
+
 export default function App() {
   const [collections, setCollections] = useState<Collection[]>(initialCollections);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [createOpen, setCreateOpen] = useState(false);
   const [addingTo, setAddingTo] = useState<string | null>(null);
+  const [intro, setIntro] = useState<IntroPhase>("wave");
   const canvasRef = useRef<HTMLDivElement>(null);
+
+  // Onboarding sequence on first load:
+  //   wave (0–0.9s)  — only sin-wave background
+  //   dots (0.9–1.8s) — cards fade in as small circles
+  //   expand (1.8s+) — circles morph into full cards, wave fades out
+  //   done           — interactive
+  useEffect(() => {
+    const timers = [
+      setTimeout(() => setIntro("dots"), 900),
+      setTimeout(() => setIntro("expand"), 1800),
+      setTimeout(() => setIntro("done"), 2500),
+    ];
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  const minimizeAll = () =>
+    setCollections((prev) =>
+      prev.map((c) =>
+        c.state === "fullscreen" ? c : { ...c, state: "minimized" }
+      )
+    );
+  const restoreAll = () =>
+    setCollections((prev) =>
+      prev.map((c) =>
+        c.state === "fullscreen" ? c : { ...c, state: "normal" }
+      )
+    );
 
   const updateCollection = (id: string, patch: Partial<Collection>) => {
     setCollections((prev) =>
@@ -80,7 +111,12 @@ export default function App() {
 
       {/* Top-left: Settings */}
       <div className="absolute left-6 top-5 z-40">
-        <SettingsPanel settings={settings} onChange={setSettings} />
+        <SettingsPanel
+          settings={settings}
+          onChange={setSettings}
+          onMinimizeAll={minimizeAll}
+          onRestoreAll={restoreAll}
+        />
       </div>
 
       {/* Top-right: Create */}
@@ -104,23 +140,41 @@ export default function App() {
         </h1>
       </div>
 
+      {/* Sin-wave intro overlay */}
+      <IntroOverlay visible={intro !== "done"} />
+
       {/* Card canvas */}
       <div
         ref={canvasRef}
         className="absolute inset-0"
         style={{ touchAction: "none" }}
       >
-        {collections.map((c) => (
-          <MemoryCard
-            key={c.id}
-            collection={c}
-            canvasRef={canvasRef}
-            settings={settings}
-            onChange={(patch) => updateCollection(c.id, patch)}
-            onFocus={() => focusCollection(c.id)}
-            onAddPhotos={() => setAddingTo(c.id)}
-          />
-        ))}
+        <motion.div
+          className="absolute inset-0"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: intro === "wave" ? 0 : 1 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+        >
+          {collections.map((c) => {
+            const introMinimize =
+              (intro === "wave" || intro === "dots") &&
+              c.state === "normal";
+            const display: Collection = introMinimize
+              ? { ...c, state: "minimized" }
+              : c;
+            return (
+              <MemoryCard
+                key={c.id}
+                collection={display}
+                canvasRef={canvasRef}
+                settings={settings}
+                onChange={(patch) => updateCollection(c.id, patch)}
+                onFocus={() => focusCollection(c.id)}
+                onAddPhotos={() => setAddingTo(c.id)}
+              />
+            );
+          })}
+        </motion.div>
       </div>
 
       {/* Fullscreen layer */}
