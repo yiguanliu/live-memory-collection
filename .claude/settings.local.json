@@ -14,7 +14,8 @@
       "Bash(python -c \"from PIL import Image; print\\('ok'\\)\")",
       "Bash(python inline_photos.py)",
       "Bash(python -c ' *)",
-      "Bash(cd 'E:/03_Playground/ui_design' && mv index.html static-design/ && mv inline_photos.py static-design/ && cp assets/*.png public/photos/ && cp assets/bg-pattern.svg public/photos/ && ls public/photos/)"
+      "Bash(cd 'E:/03_Playground/ui_design' && mv index.html static-design/ && mv inline_photos.py static-design/ && cp assets/*.png public/photos/ && cp assets/bg-pattern.svg public/photos/ && ls public/photos/)",
+      "Bash(npx tsc *)"
     ]
   }
 }

@@ -13,6 +13,16 @@ type Props = {
   onDeleteCurrent: () => void;
 };
 
+const slideVariants = {
+  enter: (dir: number) => ({ x: dir > 0 ? "100%" : "-100%", opacity: 0 }),
+  center: { x: 0, opacity: 1 },
+  exit: (dir: number) => ({ x: dir > 0 ? "-100%" : "100%", opacity: 0 }),
+};
+const slideTransition = {
+  x: { type: "spring" as const, stiffness: 280, damping: 32 },
+  opacity: { duration: 0.2 },
+};
+
 export function FullscreenView({
   collection,
   onBack,
@@ -23,6 +33,15 @@ export function FullscreenView({
   const photo = collection.photos[collection.photoIndex];
   const hasMany = collection.photos.length > 1;
   const [confirming, setConfirming] = useState(false);
+  const [photoDir, setPhotoDir] = useState(1);
+  const handlePrev = () => {
+    setPhotoDir(-1);
+    onPrev();
+  };
+  const handleNext = () => {
+    setPhotoDir(1);
+    onNext();
+  };
 
   return (
     <motion.div
@@ -33,13 +52,15 @@ export function FullscreenView({
       transition={{ type: "spring", stiffness: 280, damping: 30, mass: 0.7 }}
       className="fixed inset-0 z-[100] overflow-hidden bg-black"
     >
-      <AnimatePresence initial={false} mode="popLayout">
+      <AnimatePresence initial={false} custom={photoDir} mode="popLayout">
         <motion.div
           key={collection.photoIndex + "-" + (photo ?? "fb")}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
+          custom={photoDir}
+          variants={slideVariants}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          transition={slideTransition}
           className="absolute inset-0 flex items-center justify-center"
         >
           {photo ? (
@@ -120,7 +141,7 @@ export function FullscreenView({
             <Button
               variant="icon"
               size="icon"
-              onClick={onPrev}
+              onClick={handlePrev}
               aria-label="Previous photo"
             >
               <ChevronLeft />
@@ -130,7 +151,7 @@ export function FullscreenView({
             <Button
               variant="icon"
               size="icon"
-              onClick={onNext}
+              onClick={handleNext}
               aria-label="Next photo"
             >
               <ChevronRight />

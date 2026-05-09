@@ -1,5 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import { motion, useMotionValue, type PanInfo } from "framer-motion";
+import {
+  AnimatePresence,
+  motion,
+  useMotionValue,
+  type PanInfo,
+} from "framer-motion";
 import {
   ChevronLeft,
   ChevronRight,
@@ -37,6 +42,16 @@ const SPRING = {
   mass: 0.5,
 };
 const MORPH_DURATION_MS = 280;
+
+const slideVariants = {
+  enter: (dir: number) => ({ x: dir > 0 ? "100%" : "-100%", opacity: 0 }),
+  center: { x: 0, opacity: 1 },
+  exit: (dir: number) => ({ x: dir > 0 ? "-100%" : "100%", opacity: 0 }),
+};
+const slideTransition = {
+  x: { type: "spring" as const, stiffness: 320, damping: 32 },
+  opacity: { duration: 0.18 },
+};
 const MIN_W = 140;
 const MIN_H = 160;
 const MAX_W = 520;
@@ -276,6 +291,17 @@ function NormalCard({
 }) {
   const hasMany = collection.photos.length > 1;
 
+  // Slide direction for the photo carousel: +1 = next, -1 = prev.
+  const [photoDir, setPhotoDir] = useState(1);
+  const handlePrev = () => {
+    setPhotoDir(-1);
+    onPrev();
+  };
+  const handleNext = () => {
+    setPhotoDir(1);
+    onNext();
+  };
+
   // ----- resize handle -----
   const startRef = useRef<{ x: number; y: number } | null>(null);
   const onResizePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -307,9 +333,22 @@ function NormalCard({
       exit={{ opacity: 0 }}
       transition={{ duration: 0.18, delay: MORPH_DURATION_MS / 1000 - 0.05 }}
     >
-      {/* Photo with progressive bottom-to-top blur */}
+      {/* Photo with progressive bottom-to-top blur. Sliding carousel. */}
       <div className="absolute inset-[2px] overflow-hidden rounded-[22px]">
-        <BlurPhoto src={currentPhoto} alt={name} blur={9} />
+        <AnimatePresence initial={false} custom={photoDir} mode="popLayout">
+          <motion.div
+            key={collection.photoIndex + "-" + (currentPhoto ?? "fb")}
+            custom={photoDir}
+            variants={slideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={slideTransition}
+            className="absolute inset-0"
+          >
+            <BlurPhoto src={currentPhoto} alt={name} blur={9} />
+          </motion.div>
+        </AnimatePresence>
         <div className="photo-overlay pointer-events-none absolute inset-0 rounded-[22px]" />
       </div>
 
@@ -344,7 +383,7 @@ function NormalCard({
           <Button
             variant="icon"
             size="iconSm"
-            onClick={onPrev}
+            onClick={handlePrev}
             aria-label="Previous photo"
           >
             <ChevronLeft />
@@ -352,7 +391,7 @@ function NormalCard({
           <Button
             variant="icon"
             size="iconSm"
-            onClick={onNext}
+            onClick={handleNext}
             aria-label="Next photo"
           >
             <ChevronRight />
