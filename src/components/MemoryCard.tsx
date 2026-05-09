@@ -185,6 +185,10 @@ export function MemoryCard({
           width: renderW,
           height: renderH,
           borderRadius: radius,
+          // Anchor scale animations to the top-left corner instead of the
+          // center, so the entry/exit appears to grow out from / shrink
+          // back into the card's positioned origin (where x,y land).
+          transformOrigin: "top left",
         }}
         initial={{ scale: 0.4, opacity: 0 }}
         animate={{
