@@ -362,8 +362,9 @@ function NormalCard({
         onFullscreen={onFullscreen}
       />
 
-      {/* Centered drag indicator (purely visual; whole card is draggable) */}
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-white/30">
+      {/* Centered drag indicator — fades in on card hover so the photo
+          stays uncluttered at rest. */}
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-white/30 opacity-0 transition-opacity duration-200 ease-out group-hover/card:opacity-100">
         <GripVertical className="h-6 w-6" />
       </div>
 
