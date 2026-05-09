@@ -171,7 +171,7 @@ export function MemoryCard({
       whileHover={isMinimized ? { scale: 1.12 } : {}}
       transition={SPRING}
       className={cn(
-        "group absolute overflow-hidden select-none touch-none border border-white peach-frame",
+        "group/card absolute overflow-hidden select-none touch-none border border-white peach-frame",
         isDragging ? "cursor-grabbing" : "cursor-grab"
       )}
     >
@@ -355,9 +355,9 @@ function NormalCard({
         <div className="photo-overlay pointer-events-none absolute inset-0 rounded-[22px]" />
       </div>
 
-      {/* Top-left: macOS-style window controls */}
+      {/* Top-left: macOS-style window controls — fade in on card hover */}
       <WindowControls
-        className="absolute left-3 top-3 z-20"
+        className="absolute left-3 top-3 z-20 opacity-0 pointer-events-none transition-opacity duration-200 ease-out group-hover/card:opacity-100 group-hover/card:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto"
         onMinimize={onMinimize}
         onFullscreen={onFullscreen}
       />
@@ -404,7 +404,7 @@ function NormalCard({
 
       {/* Bottom action row — fades in on card hover */}
       <div
-        className="absolute inset-x-0 bottom-7 flex items-center justify-center gap-10 text-white opacity-0 pointer-events-none transition-opacity duration-200 ease-out group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto"
+        className="absolute inset-x-0 bottom-7 flex items-center justify-center gap-10 text-white opacity-0 pointer-events-none transition-opacity duration-200 ease-out group-hover/card:opacity-100 group-hover/card:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto"
         onPointerDown={(e) => e.stopPropagation()}
       >
         <Tooltip>
