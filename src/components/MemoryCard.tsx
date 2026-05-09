@@ -44,8 +44,6 @@ const SPRING = {
   damping: 34,
   mass: 0.5,
 };
-const MORPH_DURATION_MS = 280;
-
 const slideVariants = {
   enter: (dir: number) => ({ x: dir > 0 ? "100%" : "-100%", opacity: 0 }),
   center: { x: 0, opacity: 1 },
@@ -157,60 +155,56 @@ export function MemoryCard({
   const currentPhoto = photos[photoIndex];
 
   return (
-    <motion.div
-      layoutId={`card-${collection.id}`}
-      drag={!isResizing}
-      dragConstraints={dragConstraints}
-      dragElastic={0.08}
-      dragMomentum
-      dragTransition={{
-        power: 0.35,
-        timeConstant: 220,
-        bounceStiffness: 500,
-        bounceDamping: 28,
-        // Snap inertia target onto the grid step.
-        modifyTarget: (t) =>
-          settings.snap && settings.pattern !== "none"
-            ? snapTo(t, settings.density)
-            : t,
-      }}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      onPointerDown={onFocus}
-      style={{ x, y, zIndex: collection.z }}
-      initial={{ scale: 0.4, opacity: 0 }}
-      animate={{
-        width: renderW,
-        height: renderH,
-        borderRadius: radius,
-        scale: 1,
-        opacity: 1,
-        boxShadow: isDragging
-          ? "0 30px 60px -10px rgba(0, 0, 0, 0.35), 0 12px 25px rgba(0, 0, 0, 0.18)"
-          : isMinimized
-          ? "0 4px 10px rgba(0, 0, 0, 0.25)"
-          : "0 5px 15px 3px rgba(0, 0, 0, 0.1)",
-      }}
-      exit={{ scale: 0.4, opacity: 0 }}
-      whileTap={isMinimized ? { scale: 1.08 } : { scale: 0.99 }}
-      whileHover={isMinimized ? { scale: 1.12 } : {}}
-      transition={{
-        // Spring drives the snappy size morph...
-        default: SPRING,
-        // ...but border-radius uses a tween. A spring on border-radius can
-        // settle into a non-target equilibrium when its initial velocity is
-        // high (e.g. when minimize/restore changes width and radius at the
-        // same time), leaving the card visibly oval until the next render
-        // forces a re-evaluation. A time-based tween always reaches its
-        // target.
-        borderRadius: { type: "tween", duration: 0.32, ease: "easeOut" },
-        opacity: { duration: 0.25, ease: "easeOut" },
-      }}
-      className={cn(
-        "group/card absolute overflow-hidden select-none touch-none border border-white peach-frame",
-        isDragging ? "cursor-grabbing" : "cursor-grab"
-      )}
-    >
+    // No shape morphing: each state has its own motion.div with the correct
+    // size + border-radius pinned in inline style. The two cross-fade with
+    // scale via AnimatePresence — never a half-morphed oval in between.
+    <AnimatePresence initial={false} mode="popLayout">
+      <motion.div
+        key={isMinimized ? "dot" : "card"}
+        drag={!isResizing}
+        dragConstraints={dragConstraints}
+        dragElastic={0.08}
+        dragMomentum
+        dragTransition={{
+          power: 0.35,
+          timeConstant: 220,
+          bounceStiffness: 500,
+          bounceDamping: 28,
+          modifyTarget: (t) =>
+            settings.snap && settings.pattern !== "none"
+              ? snapTo(t, settings.density)
+              : t,
+        }}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onPointerDown={onFocus}
+        style={{
+          x,
+          y,
+          zIndex: collection.z,
+          width: renderW,
+          height: renderH,
+          borderRadius: radius,
+        }}
+        initial={{ scale: 0.4, opacity: 0 }}
+        animate={{
+          scale: 1,
+          opacity: 1,
+          boxShadow: isDragging
+            ? "0 30px 60px -10px rgba(0, 0, 0, 0.35), 0 12px 25px rgba(0, 0, 0, 0.18)"
+            : isMinimized
+            ? "0 4px 10px rgba(0, 0, 0, 0.25)"
+            : "0 5px 15px 3px rgba(0, 0, 0, 0.1)",
+        }}
+        exit={{ scale: 0.4, opacity: 0 }}
+        whileTap={isMinimized ? { scale: 1.08 } : { scale: 0.99 }}
+        whileHover={isMinimized ? { scale: 1.12 } : {}}
+        transition={SPRING}
+        className={cn(
+          "group/card absolute overflow-hidden select-none touch-none border border-white peach-frame",
+          isDragging ? "cursor-grabbing" : "cursor-grab"
+        )}
+      >
       {isMinimized ? (
         <MinimizedDot
           collection={collection}
@@ -250,7 +244,8 @@ export function MemoryCard({
           }
         />
       )}
-    </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 }
 
@@ -371,13 +366,7 @@ function NormalCard({
   };
 
   return (
-    <motion.div
-      className="absolute inset-0"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.18, delay: MORPH_DURATION_MS / 1000 - 0.05 }}
-    >
+    <div className="absolute inset-0">
       {/* Photo with progressive bottom-to-top blur. Sliding carousel. */}
       <div className="absolute inset-[2px] overflow-hidden rounded-[22px]">
         <AnimatePresence initial={false} custom={photoDir} mode="popLayout">
@@ -552,7 +541,7 @@ function NormalCard({
           <circle cx="5" cy="9" r="1" />
         </svg>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
