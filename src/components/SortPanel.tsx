@@ -50,7 +50,7 @@ export function SortPanel({ onSort }: Props) {
       >
         <LayoutGrid className="h-4 w-4" />
       </PopoverTrigger>
-      <PopoverContent>
+      <PopoverContent side="right" align="center" sideOffset={12}>
         <div className="grid gap-3">
           <div className="grid gap-1">
             <h3 className="text-sm font-semibold">Arrange cards</h3>

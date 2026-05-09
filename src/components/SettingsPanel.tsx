@@ -29,7 +29,7 @@ export function SettingsPanel({ settings, onChange }: Props) {
       >
         <SettingsIcon className="h-4 w-4" />
       </PopoverTrigger>
-      <PopoverContent>
+      <PopoverContent side="right" align="center" sideOffset={12}>
         <div className="grid gap-4">
           <div className="grid gap-1">
             <h3 className="text-sm font-semibold">Background</h3>
