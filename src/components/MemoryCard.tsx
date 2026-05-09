@@ -185,6 +185,11 @@ export function MemoryCard({
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onPointerDown={onFocus}
+        // When minimized, a clean tap (no drag movement) restores the card.
+        // framer-motion cancels the tap if the pointer crosses the drag
+        // threshold, so the dot stays draggable without accidentally
+        // expanding mid-drag. Same gesture works on touch and mouse.
+        onTap={isMinimized ? () => onChange({ state: "normal" }) : undefined}
         style={{
           x,
           y,
@@ -237,10 +242,7 @@ export function MemoryCard({
         )}
       >
       {isMinimized ? (
-        <MinimizedDot
-          collection={collection}
-          onExpand={() => onChange({ state: "normal" })}
-        />
+        <MinimizedDot collection={collection} />
       ) : (
         <NormalCard
           collection={collection}
@@ -284,20 +286,15 @@ export function MemoryCard({
 // Minimized dot
 // ============================================================
 
-function MinimizedDot({
-  collection,
-  onExpand,
-}: {
-  collection: Collection;
-  onExpand: () => void;
-}) {
+function MinimizedDot({ collection }: { collection: Collection }) {
   const photo = collection.photos[collection.photoIndex];
+  // Plain div — no button, no stopPropagation. The parent motion.div
+  // handles both drag and tap (tap → restore is wired via onTap on the
+  // parent so the dot can be dragged without restoring on click).
   return (
-    <button
-      onPointerDown={(e) => e.stopPropagation()}
-      onClick={onExpand}
-      className="absolute inset-0 overflow-hidden rounded-full focus:outline-none"
-      title={`Expand ${collection.name}`}
+    <div
+      className="absolute inset-0 overflow-hidden rounded-full"
+      title={`Tap to expand ${collection.name}`}
     >
       <div className="absolute inset-[1px] overflow-hidden rounded-full">
         {photo ? (
@@ -318,7 +315,7 @@ function MinimizedDot({
         )}
         <div className="photo-overlay absolute inset-0 rounded-full" />
       </div>
-    </button>
+    </div>
   );
 }
 
