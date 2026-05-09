@@ -11,7 +11,6 @@ import {
   ChevronRight,
   Contrast,
   GripVertical,
-  Maximize2,
   Plus,
   User,
 } from "lucide-react";
@@ -135,30 +134,26 @@ export function MemoryCard({
 
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
-  // Popup-driven restore for the minimized dot. Tapping the dot opens
-  // an "Expand" button next to it instead of immediately restoring,
-  // so a click-without-movement is no longer destructive — drag still
-  // works because tapping is canceled when drag movement is detected.
-  const [expandMenuOpen, setExpandMenuOpen] = useState(false);
 
-  // Always close the popup if state shifts away from minimized.
-  useEffect(() => {
-    if (state !== "minimized") setExpandMenuOpen(false);
-  }, [state]);
-
-  // Dismiss the popup on Escape.
-  useEffect(() => {
-    if (!expandMenuOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setExpandMenuOpen(false);
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [expandMenuOpen]);
+  // Double-tap detection for restoring a minimized dot. A single tap on
+  // the dot does nothing — only a second tap within DOUBLE_TAP_MS
+  // commits to restore. Drag still works because framer-motion cancels
+  // tap when pointer movement crosses the drag threshold.
+  const lastTapRef = useRef(0);
+  const DOUBLE_TAP_MS = 320;
+  const handleDotTap = () => {
+    const now = Date.now();
+    if (now - lastTapRef.current <= DOUBLE_TAP_MS) {
+      lastTapRef.current = 0;
+      onChange({ state: "normal" });
+    } else {
+      lastTapRef.current = now;
+    }
+  };
 
   const handleDragStart = (_: unknown, _info: PanInfo) => {
     setIsDragging(true);
-    setExpandMenuOpen(false);
+    lastTapRef.current = 0;
     onFocus();
   };
 
@@ -184,50 +179,9 @@ export function MemoryCard({
   const currentPhoto = photos[photoIndex];
 
   return (
-    <>
-    {/* Expand-menu popup for the minimized dot. Backdrop dismisses on
-        outside click; pressing the button restores the card. */}
-    <AnimatePresence>
-      {isMinimized && expandMenuOpen && (
-        <>
-          <motion.div
-            key="backdrop"
-            className="fixed inset-0 z-[45]"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            onClick={() => setExpandMenuOpen(false)}
-            onPointerDown={(e) => e.stopPropagation()}
-          />
-          <motion.button
-            key="popup"
-            type="button"
-            onClick={() => {
-              setExpandMenuOpen(false);
-              onChange({ state: "normal" });
-            }}
-            onPointerDown={(e) => e.stopPropagation()}
-            aria-label={`Expand ${name}`}
-            className="absolute z-[46] grid h-9 w-9 place-items-center rounded-full border border-white/30 bg-white/20 text-white backdrop-blur-md transition hover:bg-white/30 active:scale-95"
-            style={{
-              left: position.x + 36,
-              top: position.y - 4,
-              transformOrigin: "left center",
-            }}
-            initial={{ opacity: 0, scale: 0.85, x: -8 }}
-            animate={{ opacity: 1, scale: 1, x: 0 }}
-            exit={{ opacity: 0, scale: 0.85, x: -8 }}
-            transition={{ type: "spring", stiffness: 380, damping: 26 }}
-          >
-            <Maximize2 className="h-4 w-4" />
-          </motion.button>
-        </>
-      )}
-    </AnimatePresence>
-    {/* No shape morphing: each state has its own motion.div with the correct
-        size + border-radius pinned in inline style. The two cross-fade with
-        scale via AnimatePresence — never a half-morphed oval in between. */}
+    // No shape morphing: each state has its own motion.div with the correct
+    // size + border-radius pinned in inline style. The two cross-fade with
+    // scale via AnimatePresence — never a half-morphed oval in between.
     <AnimatePresence initial={false} mode="popLayout">
       <motion.div
         key={isMinimized ? "dot" : "card"}
@@ -248,12 +202,10 @@ export function MemoryCard({
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onPointerDown={onFocus}
-        // When minimized, a clean tap surfaces an "Expand" popup next to
-        // the dot. The actual restore only fires on the popup button —
-        // separating the drag gesture (move the dot) from the restore
-        // action (commit to a button click) so a stray click never
-        // unintentionally restores.
-        onTap={isMinimized ? () => setExpandMenuOpen(true) : undefined}
+        // Double-tap to restore. A single tap is a no-op so the dot can
+        // be focused / pressed without expanding; the second tap within
+        // ~320ms commits.
+        onTap={isMinimized ? handleDotTap : undefined}
         style={{
           x,
           y,
@@ -343,7 +295,6 @@ export function MemoryCard({
       )}
       </motion.div>
     </AnimatePresence>
-    </>
   );
 }
 
@@ -359,7 +310,7 @@ function MinimizedDot({ collection }: { collection: Collection }) {
   return (
     <div
       className="absolute inset-0 overflow-hidden rounded-full"
-      title={`Tap to expand ${collection.name}`}
+      title={`Double-tap to expand ${collection.name}`}
     >
       <div className="absolute inset-[1px] overflow-hidden rounded-full">
         {photo ? (
