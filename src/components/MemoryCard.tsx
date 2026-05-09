@@ -11,9 +11,7 @@ import {
   Contrast,
   GripVertical,
   Plus,
-  Trash2,
   User,
-  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { snapTo } from "@/lib/pattern";
@@ -332,9 +330,6 @@ function NormalCard({
 }) {
   const hasMany = collection.photos.length > 1;
 
-  // Two-stage delete confirm state for the iOS-style red dot top-right.
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
-
   // Slide direction for the photo carousel: +1 = next, -1 = prev.
   const [photoDir, setPhotoDir] = useState(1);
   const handlePrev = () => {
@@ -390,28 +385,14 @@ function NormalCard({
         <div className="photo-overlay pointer-events-none absolute inset-0 rounded-[22px]" />
       </div>
 
-      {/* Top-left: macOS-style window controls — fade in on card hover */}
+      {/* Top-left: macOS-style window controls (red close · yellow minimize ·
+          green zoom). Fades in on card hover. */}
       <WindowControls
         className="absolute left-3 top-3 z-20 opacity-0 pointer-events-none transition-opacity duration-200 ease-out group-hover/card:opacity-100 group-hover/card:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto"
+        onDelete={onDelete}
         onMinimize={onMinimize}
         onFullscreen={onFullscreen}
       />
-
-      {/* Top-right: iOS-style red delete dot — same hover-fade as the others */}
-      <div
-        className="absolute right-3 top-3 z-20 opacity-0 pointer-events-none transition-opacity duration-200 ease-out group-hover/card:opacity-100 group-hover/card:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto"
-        onPointerDown={(e) => e.stopPropagation()}
-      >
-        <CardDeleteDot
-          confirming={confirmingDelete}
-          onArm={() => setConfirmingDelete(true)}
-          onCancel={() => setConfirmingDelete(false)}
-          onConfirm={() => {
-            setConfirmingDelete(false);
-            onDelete();
-          }}
-        />
-      </div>
 
       {/* Centered drag indicator — fades in on card hover so the photo
           stays uncluttered at rest. */}
@@ -546,68 +527,5 @@ function NormalCard({
         </svg>
       </div>
     </div>
-  );
-}
-
-// ============================================================
-// Delete dot (top-right) — matches the iOS/macOS traffic-light
-// styling of WindowControls. Click → expands into a confirm pill.
-// ============================================================
-
-function CardDeleteDot({
-  confirming,
-  onArm,
-  onCancel,
-  onConfirm,
-}: {
-  confirming: boolean;
-  onArm: () => void;
-  onCancel: () => void;
-  onConfirm: () => void;
-}) {
-  return (
-    <AnimatePresence mode="popLayout" initial={false}>
-      {confirming ? (
-        <motion.div
-          key="confirm"
-          initial={{ opacity: 0, scale: 0.85, x: 6 }}
-          animate={{ opacity: 1, scale: 1, x: 0 }}
-          exit={{ opacity: 0, scale: 0.85, x: 6 }}
-          transition={{ type: "spring", stiffness: 380, damping: 26 }}
-          className="flex items-center gap-1 rounded-full border border-white/20 bg-black/70 px-1 py-0.5 backdrop-blur-md"
-        >
-          <button
-            onClick={onCancel}
-            className="grid h-5 w-5 place-items-center rounded-full text-white/85 transition hover:bg-white/15 active:scale-90"
-            aria-label="Cancel delete"
-          >
-            <X className="h-3 w-3" />
-          </button>
-          <button
-            onClick={onConfirm}
-            className="grid h-5 w-5 place-items-center rounded-full bg-red-500 text-white shadow-sm transition hover:bg-red-400 active:scale-90"
-            aria-label="Confirm delete"
-          >
-            <Trash2 className="h-2.5 w-2.5" />
-          </button>
-        </motion.div>
-      ) : (
-        <motion.button
-          key="dot"
-          onClick={onArm}
-          aria-label="Delete collection"
-          className="group/dot relative flex h-3 w-3 items-center justify-center rounded-full bg-[#ff5f57] shadow-[0_0_0_0.5px_rgba(0,0,0,0.15)] transition-transform hover:scale-110 active:scale-90"
-          initial={{ opacity: 0, scale: 0.85 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.85 }}
-          transition={{ type: "spring", stiffness: 380, damping: 26 }}
-        >
-          <X
-            strokeWidth={3}
-            className="h-2 w-2 text-stone-800/70 opacity-0 transition-opacity group-hover/dot:opacity-100"
-          />
-        </motion.button>
-      )}
-    </AnimatePresence>
   );
 }
