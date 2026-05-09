@@ -200,9 +200,16 @@ export function MemoryCard({
             onClick={() => setExpandMenuOpen(false)}
             onPointerDown={(e) => e.stopPropagation()}
           />
-          <motion.div
+          <motion.button
             key="popup"
-            className="absolute z-[46] flex items-center gap-1 rounded-full border border-white/40 bg-white/95 px-1 py-1 shadow-lg backdrop-blur-md"
+            type="button"
+            onClick={() => {
+              setExpandMenuOpen(false);
+              onChange({ state: "normal" });
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            aria-label={`Expand ${name}`}
+            className="absolute z-[46] grid h-9 w-9 place-items-center rounded-full border border-white/30 bg-white/20 text-white backdrop-blur-md transition hover:bg-white/30 active:scale-95"
             style={{
               left: position.x + 36,
               top: position.y - 4,
@@ -212,21 +219,9 @@ export function MemoryCard({
             animate={{ opacity: 1, scale: 1, x: 0 }}
             exit={{ opacity: 0, scale: 0.85, x: -8 }}
             transition={{ type: "spring", stiffness: 380, damping: 26 }}
-            onPointerDown={(e) => e.stopPropagation()}
           >
-            <button
-              type="button"
-              onClick={() => {
-                setExpandMenuOpen(false);
-                onChange({ state: "normal" });
-              }}
-              aria-label={`Expand ${name}`}
-              className="flex h-7 items-center gap-1.5 rounded-full bg-peach-300 px-3 text-xs font-medium text-white shadow-sm transition hover:bg-peach-300/90 active:scale-95"
-            >
-              <Maximize2 className="h-3.5 w-3.5" />
-              Expand
-            </button>
-          </motion.div>
+            <Maximize2 className="h-4 w-4" />
+          </motion.button>
         </>
       )}
     </AnimatePresence>
