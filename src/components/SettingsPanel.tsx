@@ -1,4 +1,8 @@
-import { Settings as SettingsIcon } from "lucide-react";
+import {
+  Maximize2,
+  Minimize2,
+  Settings as SettingsIcon,
+} from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -12,6 +16,8 @@ import { cn } from "@/lib/utils";
 type Props = {
   settings: Settings;
   onChange: (next: Settings) => void;
+  onMinimizeAll: () => void;
+  onRestoreAll: () => void;
 };
 
 const PATTERNS: { value: PatternType; label: string }[] = [
@@ -20,7 +26,12 @@ const PATTERNS: { value: PatternType; label: string }[] = [
   { value: "none", label: "Off" },
 ];
 
-export function SettingsPanel({ settings, onChange }: Props) {
+export function SettingsPanel({
+  settings,
+  onChange,
+  onMinimizeAll,
+  onRestoreAll,
+}: Props) {
   return (
     <Popover>
       <PopoverTrigger
@@ -100,6 +111,28 @@ export function SettingsPanel({ settings, onChange }: Props) {
                 )}
               />
             </button>
+          </div>
+
+          <div className="grid gap-2 border-t border-stone-200 pt-3">
+            <Label>Bulk actions</Label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={onMinimizeAll}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-stone-700 transition hover:border-peach-300 hover:bg-peach-50/60 active:scale-95"
+              >
+                <Minimize2 className="h-3.5 w-3.5" />
+                Minimize all
+              </button>
+              <button
+                type="button"
+                onClick={onRestoreAll}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-stone-700 transition hover:border-peach-300 hover:bg-peach-50/60 active:scale-95"
+              >
+                <Maximize2 className="h-3.5 w-3.5" />
+                Restore all
+              </button>
+            </div>
           </div>
         </div>
       </PopoverContent>
