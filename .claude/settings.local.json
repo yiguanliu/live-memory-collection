@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__03dd47be-b62d-45ce-92e6-497bb4aa3d31__get_design_context",
+      "mcp__03dd47be-b62d-45ce-92e6-497bb4aa3d31__get_screenshot",
+      "Bash(mkdir -p \"E:\\\\03_Playground\\\\ui_design\\\\assets\")",
+      "Bash(curl -s -o jamie.png \"https://www.figma.com/api/mcp/asset/967c57ec-354d-49b0-addd-c617346f366b\")",
+      "Bash(curl -s -o anthony.png \"https://www.figma.com/api/mcp/asset/0d5a5226-94a3-42b1-9238-bd7bee008b76\")",
+      "Bash(curl -s -o hazel.png \"https://www.figma.com/api/mcp/asset/417726e8-f038-421e-96d3-d4e1759ddd76\")",
+      "Bash(curl -s -o layla.png \"https://www.figma.com/api/mcp/asset/84ed09d3-fe0a-4283-81fe-d8da8f47cdaa\")",
+      "Bash(mkdir -p 'E:/03_Playground/ui_design/.claude')",
+      "mcp__Claude_Preview__preview_start",
+      "mcp__03dd47be-b62d-45ce-92e6-497bb4aa3d31__get_metadata",
+      "Bash(python -c \"from PIL import Image; print\\('ok'\\)\")",
+      "Bash(python inline_photos.py)",
+      "Bash(python -c ' *)",
+      "Bash(cd 'E:/03_Playground/ui_design' && mv index.html static-design/ && mv inline_photos.py static-design/ && cp assets/*.png public/photos/ && cp assets/bg-pattern.svg public/photos/ && ls public/photos/)"
+    ]
+  }
+}

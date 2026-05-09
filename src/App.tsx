@@ -1,0 +1,191 @@
+import { useMemo, useRef, useState } from "react";
+import { AnimatePresence } from "framer-motion";
+import { Plus } from "lucide-react";
+import { MemoryCard } from "@/components/MemoryCard";
+import { FullscreenView } from "@/components/FullscreenView";
+import { CreateCollectionDialog } from "@/components/CreateCollectionDialog";
+import { AddPhotosDialog } from "@/components/AddPhotosDialog";
+import { SettingsPanel } from "@/components/SettingsPanel";
+import { Button } from "@/components/ui/button";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { initialCollections } from "@/data";
+import { DEFAULT_SETTINGS, type Collection, type Settings } from "@/types";
+import { patternBackground } from "@/lib/pattern";
+
+export default function App() {
+  const [collections, setCollections] = useState<Collection[]>(initialCollections);
+  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [addingTo, setAddingTo] = useState<string | null>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
+
+  const updateCollection = (id: string, patch: Partial<Collection>) => {
+    setCollections((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, ...patch } : c))
+    );
+  };
+
+  const focusCollection = (id: string) => {
+    setCollections((prev) => {
+      // Already on top? skip — avoids re-renders on every click.
+      const maxZ = prev.reduce((m, c) => Math.max(m, c.z), 0);
+      const target = prev.find((c) => c.id === id);
+      if (target && target.z === maxZ) return prev;
+
+      // Renormalize ranks to 1..N to keep z-indexes bounded and well below
+      // overlay layers (dialog z-[200], fullscreen z-[100]).
+      const sorted = [...prev].sort((a, b) => a.z - b.z);
+      const ranked = new Map(
+        sorted.map((c, i) => [c.id, c.id === id ? sorted.length + 1 : i + 1])
+      );
+      return prev.map((c) => ({ ...c, z: ranked.get(c.id)! }));
+    });
+  };
+
+  const nextZ = useMemo(
+    () => collections.reduce((m, c) => Math.max(m, c.z), 0) + 1,
+    [collections]
+  );
+
+  const spawnPosition = useMemo(() => {
+    const w = canvasRef.current?.clientWidth ?? 1024;
+    const h = canvasRef.current?.clientHeight ?? 768;
+    return {
+      x: w / 2 - 110 + Math.random() * 40,
+      y: h / 2 - 140 + Math.random() * 40,
+    };
+  }, [createOpen]);
+
+  const addingCollection = collections.find((c) => c.id === addingTo);
+
+  return (
+    <TooltipProvider delayDuration={250} skipDelayDuration={120}>
+    <div
+      className="relative h-full w-full overflow-hidden"
+      style={patternBackground(settings)}
+    >
+      {/* Crosshair + circle reference (subtle) */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute left-0 right-0 top-1/2 h-px bg-white/10" />
+        <div className="absolute top-0 bottom-0 left-1/2 w-px bg-white/10" />
+        <div className="absolute left-1/2 top-[60%] h-[1100px] w-[1100px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/10" />
+      </div>
+
+      {/* Top header */}
+      <div className="absolute inset-x-0 top-6 z-30 flex items-center justify-center">
+        <p className="text-stone-50/90 text-[20px] font-medium tracking-wide">
+          add your photo to collection now
+        </p>
+      </div>
+
+      {/* Top-left: Settings */}
+      <div className="absolute left-6 top-5 z-40">
+        <SettingsPanel settings={settings} onChange={setSettings} />
+      </div>
+
+      {/* Top-right: Create */}
+      <div className="absolute right-6 top-5 z-40">
+        <Button
+          variant="primary"
+          onClick={() => setCreateOpen(true)}
+          className="shadow-lg"
+        >
+          <Plus />
+          New collection
+        </Button>
+      </div>
+
+      {/* Bottom title */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-12 z-0 text-center">
+        <h1 className="font-host text-[64px] font-normal leading-[1.05] text-stone-200/95">
+          LIVE MEMORY
+          <br />
+          COLLECTION
+        </h1>
+      </div>
+
+      {/* Card canvas */}
+      <div
+        ref={canvasRef}
+        className="absolute inset-0"
+        style={{ touchAction: "none" }}
+      >
+        {collections.map((c) => (
+          <MemoryCard
+            key={c.id}
+            collection={c}
+            canvasRef={canvasRef}
+            settings={settings}
+            onChange={(patch) => updateCollection(c.id, patch)}
+            onFocus={() => focusCollection(c.id)}
+            onAddPhotos={() => setAddingTo(c.id)}
+          />
+        ))}
+      </div>
+
+      {/* Fullscreen layer */}
+      <AnimatePresence>
+        {collections
+          .filter((c) => c.state === "fullscreen")
+          .map((c) => (
+            <FullscreenView
+              key={c.id}
+              collection={c}
+              onBack={() => updateCollection(c.id, { state: "normal" })}
+              onPrev={() =>
+                updateCollection(c.id, {
+                  photoIndex:
+                    c.photos.length > 0
+                      ? (c.photoIndex - 1 + c.photos.length) % c.photos.length
+                      : 0,
+                })
+              }
+              onNext={() =>
+                updateCollection(c.id, {
+                  photoIndex:
+                    c.photos.length > 0
+                      ? (c.photoIndex + 1) % c.photos.length
+                      : 0,
+                })
+              }
+              onDeleteCurrent={() => {
+                if (c.photos.length === 0) return;
+                const nextPhotos = c.photos.filter(
+                  (_, i) => i !== c.photoIndex
+                );
+                const nextIndex = Math.min(
+                  c.photoIndex,
+                  Math.max(0, nextPhotos.length - 1)
+                );
+                updateCollection(c.id, {
+                  photos: nextPhotos,
+                  photoIndex: nextIndex,
+                });
+              }}
+            />
+          ))}
+      </AnimatePresence>
+
+      <CreateCollectionDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreate={(c) => setCollections((prev) => [...prev, c])}
+        spawnPosition={spawnPosition}
+        nextZ={nextZ}
+      />
+
+      <AddPhotosDialog
+        open={addingTo !== null}
+        onOpenChange={(o) => !o && setAddingTo(null)}
+        collectionName={addingCollection?.name ?? ""}
+        onAdd={(urls) => {
+          if (!addingTo) return;
+          updateCollection(addingTo, {
+            photos: [...(addingCollection?.photos ?? []), ...urls],
+          });
+        }}
+      />
+    </div>
+    </TooltipProvider>
+  );
+}

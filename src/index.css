@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-frame: radial-gradient(
+      ellipse 1100px 1300px at 18% 12%,
+      #e2a87a 0%,
+      #d7baa2 45%,
+      #cccbc9 95%
+    );
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    margin: 0;
+  }
+
+  body {
+    font-family: "Host Grotesk", system-ui, sans-serif;
+    background: #efece9;
+    overflow: hidden;
+  }
+}
+
+@layer utilities {
+  .photo-overlay {
+    background: linear-gradient(
+      -60deg,
+      rgba(102, 102, 102, 0) 25%,
+      rgba(180, 104, 43, 0.76) 75%
+    );
+  }
+
+  .peach-frame {
+    background: radial-gradient(
+      ellipse at 50% 0%,
+      #ffffff 0%,
+      #f1d4bd 50%,
+      #e9be9b 75%,
+      #e2a87a 100%
+    );
+  }
+
+  .frame-bg {
+    background:
+      linear-gradient(90deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.04)),
+      radial-gradient(
+        ellipse 1100px 1300px at 18% 12%,
+        #e2a87a 0%,
+        #d7baa2 45%,
+        #cccbc9 95%
+      );
+  }
+}
