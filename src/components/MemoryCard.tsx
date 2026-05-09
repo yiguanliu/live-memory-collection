@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Contrast,
   GripVertical,
+  Maximize2,
   Plus,
   User,
 } from "lucide-react";
@@ -134,9 +135,30 @@ export function MemoryCard({
 
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
+  // Popup-driven restore for the minimized dot. Tapping the dot opens
+  // an "Expand" button next to it instead of immediately restoring,
+  // so a click-without-movement is no longer destructive — drag still
+  // works because tapping is canceled when drag movement is detected.
+  const [expandMenuOpen, setExpandMenuOpen] = useState(false);
+
+  // Always close the popup if state shifts away from minimized.
+  useEffect(() => {
+    if (state !== "minimized") setExpandMenuOpen(false);
+  }, [state]);
+
+  // Dismiss the popup on Escape.
+  useEffect(() => {
+    if (!expandMenuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setExpandMenuOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [expandMenuOpen]);
 
   const handleDragStart = (_: unknown, _info: PanInfo) => {
     setIsDragging(true);
+    setExpandMenuOpen(false);
     onFocus();
   };
 
@@ -162,9 +184,55 @@ export function MemoryCard({
   const currentPhoto = photos[photoIndex];
 
   return (
-    // No shape morphing: each state has its own motion.div with the correct
-    // size + border-radius pinned in inline style. The two cross-fade with
-    // scale via AnimatePresence — never a half-morphed oval in between.
+    <>
+    {/* Expand-menu popup for the minimized dot. Backdrop dismisses on
+        outside click; pressing the button restores the card. */}
+    <AnimatePresence>
+      {isMinimized && expandMenuOpen && (
+        <>
+          <motion.div
+            key="backdrop"
+            className="fixed inset-0 z-[45]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            onClick={() => setExpandMenuOpen(false)}
+            onPointerDown={(e) => e.stopPropagation()}
+          />
+          <motion.div
+            key="popup"
+            className="absolute z-[46] flex items-center gap-1 rounded-full border border-white/40 bg-white/95 px-1 py-1 shadow-lg backdrop-blur-md"
+            style={{
+              left: position.x + 36,
+              top: position.y - 4,
+              transformOrigin: "left center",
+            }}
+            initial={{ opacity: 0, scale: 0.85, x: -8 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            exit={{ opacity: 0, scale: 0.85, x: -8 }}
+            transition={{ type: "spring", stiffness: 380, damping: 26 }}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setExpandMenuOpen(false);
+                onChange({ state: "normal" });
+              }}
+              aria-label={`Expand ${name}`}
+              className="flex h-7 items-center gap-1.5 rounded-full bg-peach-300 px-3 text-xs font-medium text-white shadow-sm transition hover:bg-peach-300/90 active:scale-95"
+            >
+              <Maximize2 className="h-3.5 w-3.5" />
+              Expand
+            </button>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+    {/* No shape morphing: each state has its own motion.div with the correct
+        size + border-radius pinned in inline style. The two cross-fade with
+        scale via AnimatePresence — never a half-morphed oval in between. */}
     <AnimatePresence initial={false} mode="popLayout">
       <motion.div
         key={isMinimized ? "dot" : "card"}
@@ -185,11 +253,12 @@ export function MemoryCard({
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onPointerDown={onFocus}
-        // When minimized, a clean tap (no drag movement) restores the card.
-        // framer-motion cancels the tap if the pointer crosses the drag
-        // threshold, so the dot stays draggable without accidentally
-        // expanding mid-drag. Same gesture works on touch and mouse.
-        onTap={isMinimized ? () => onChange({ state: "normal" }) : undefined}
+        // When minimized, a clean tap surfaces an "Expand" popup next to
+        // the dot. The actual restore only fires on the popup button —
+        // separating the drag gesture (move the dot) from the restore
+        // action (commit to a button click) so a stray click never
+        // unintentionally restores.
+        onTap={isMinimized ? () => setExpandMenuOpen(true) : undefined}
         style={{
           x,
           y,
@@ -279,6 +348,7 @@ export function MemoryCard({
       )}
       </motion.div>
     </AnimatePresence>
+    </>
   );
 }
 
