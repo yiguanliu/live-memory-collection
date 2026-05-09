@@ -193,17 +193,37 @@ export function MemoryCard({
           scale: 1,
           opacity: 1,
           boxShadow: isDragging
-            ? "0 30px 60px -10px rgba(0, 0, 0, 0.35), 0 12px 25px rgba(0, 0, 0, 0.18)"
+            ? // dragging: card is "picked up" — strong shadow + bright halo
+              "0 0 0 1px rgba(255,255,255,0.85), 0 0 38px rgba(255,255,255,0.38), 0 30px 60px -10px rgba(0,0,0,0.4), 0 14px 30px rgba(0,0,0,0.22)"
             : isMinimized
             ? "0 4px 10px rgba(0, 0, 0, 0.25)"
-            : "0 5px 15px 3px rgba(0, 0, 0, 0.1)",
+            : // resting: just a soft drop shadow, no outline
+              "0 5px 15px 3px rgba(0, 0, 0, 0.10)",
         }}
         exit={{ scale: 0.4, opacity: 0 }}
-        whileTap={isMinimized ? { scale: 1.08 } : { scale: 0.99 }}
-        whileHover={isMinimized ? { scale: 1.12 } : {}}
+        whileHover={
+          isMinimized
+            ? { scale: 1.12 }
+            : {
+                // hover: outline appears with a soft white glow
+                boxShadow:
+                  "0 0 0 1px rgba(255,255,255,0.70), 0 0 28px rgba(255,255,255,0.28), 0 8px 22px 3px rgba(0,0,0,0.12)",
+              }
+        }
+        whileTap={
+          isMinimized
+            ? { scale: 1.08 }
+            : {
+                // active: card lifts toward cursor — slight scale up + stronger
+                // shadow for the "picked up" feel.
+                scale: 1.04,
+                boxShadow:
+                  "0 0 0 1px rgba(255,255,255,0.85), 0 0 38px rgba(255,255,255,0.38), 0 30px 60px -10px rgba(0,0,0,0.4), 0 14px 30px rgba(0,0,0,0.22)",
+              }
+        }
         transition={SPRING}
         className={cn(
-          "group/card absolute overflow-hidden select-none touch-none border border-white peach-frame",
+          "group/card absolute overflow-hidden select-none touch-none peach-frame",
           isDragging ? "cursor-grabbing" : "cursor-grab"
         )}
       >
