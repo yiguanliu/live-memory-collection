@@ -34,6 +34,27 @@ npm run dev      # http://localhost:5173
 npm run build    # tsc -b && vite build
 ```
 
+## Deploy (Vercel)
+
+The project ships with a `vercel.json` configured for Vite — Vercel auto-detects everything.
+
+**Option 1 — GitHub integration (recommended):**
+
+1. Sign in at [vercel.com](https://vercel.com) and import the GitHub repo.
+2. Vercel detects Vite and uses `npm run build` → `dist/`. No env vars needed.
+3. Every push to `main` deploys to production; every PR gets a preview URL.
+
+**Option 2 — Vercel CLI:**
+
+```bash
+npm i -g vercel        # one-time install
+vercel login           # interactive
+vercel                 # preview deploy from current branch
+vercel --prod          # production deploy
+```
+
+The `vercel.json` includes an SPA rewrite (forwarding non-asset paths to `index.html`) and long-lived cache headers for hashed `/assets/*` files.
+
 ## Project layout
 
 ```
