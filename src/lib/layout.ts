@@ -13,20 +13,21 @@ export function computeSortedPositions(
   collections: Collection[],
   mode: SortMode,
   canvasW: number,
-  canvasH: number
+  canvasH: number,
+  dotPx: number
 ): Map<string, { x: number; y: number }> {
   switch (mode) {
     case "size":
-      return packBySize(collections, canvasW, canvasH);
+      return packBySize(collections, canvasW, canvasH, dotPx);
     case "grid":
-      return arrangeGrid(collections, canvasW, canvasH);
+      return arrangeGrid(collections, canvasW, canvasH, dotPx);
     case "circular":
-      return arrangeCircular(collections, canvasW, canvasH);
+      return arrangeCircular(collections, canvasW, canvasH, dotPx);
   }
 }
 
 /** Largest first, packed left → right, wrapping rows. */
-function packBySize(collections: Collection[], w: number, h: number) {
+function packBySize(collections: Collection[], w: number, h: number, dotPx: number) {
   const sorted = [...collections].sort(
     (a, b) => b.size.w * b.size.h - a.size.w * a.size.h
   );
@@ -39,8 +40,8 @@ function packBySize(collections: Collection[], w: number, h: number) {
   let rowH = 0;
 
   for (const c of sorted) {
-    const w_ = c.state === "minimized" ? 28 : c.size.w;
-    const h_ = c.state === "minimized" ? 28 : c.size.h;
+    const w_ = c.state === "minimized" ? dotPx : c.size.w;
+    const h_ = c.state === "minimized" ? dotPx : c.size.h;
     if (x + w_ > w - margin) {
       x = margin;
       y += rowH + gap;
@@ -55,7 +56,7 @@ function packBySize(collections: Collection[], w: number, h: number) {
 }
 
 /** Centered grid; each card sits in its own cell. */
-function arrangeGrid(collections: Collection[], w: number, h: number) {
+function arrangeGrid(collections: Collection[], w: number, h: number, dotPx: number) {
   const n = collections.length;
   if (n === 0) return new Map();
 
@@ -73,8 +74,8 @@ function arrangeGrid(collections: Collection[], w: number, h: number) {
   collections.forEach((c, i) => {
     const col = i % cols;
     const row = Math.floor(i / cols);
-    const cardW = c.state === "minimized" ? 28 : c.size.w;
-    const cardH = c.state === "minimized" ? 28 : c.size.h;
+    const cardW = c.state === "minimized" ? dotPx : c.size.w;
+    const cardH = c.state === "minimized" ? dotPx : c.size.h;
     positions.set(c.id, {
       x: offsetX + col * cellW + (cellW - cardW) / 2,
       y: offsetY + row * cellH + (cellH - cardH) / 2,
@@ -84,7 +85,7 @@ function arrangeGrid(collections: Collection[], w: number, h: number) {
 }
 
 /** Even angular distribution around the canvas center. */
-function arrangeCircular(collections: Collection[], w: number, h: number) {
+function arrangeCircular(collections: Collection[], w: number, h: number, dotPx: number) {
   const n = collections.length;
   if (n === 0) return new Map();
 
@@ -96,8 +97,8 @@ function arrangeCircular(collections: Collection[], w: number, h: number) {
   collections.forEach((c, i) => {
     // Start from the top (angle = -π/2) and go clockwise.
     const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
-    const cardW = c.state === "minimized" ? 28 : c.size.w;
-    const cardH = c.state === "minimized" ? 28 : c.size.h;
+    const cardW = c.state === "minimized" ? dotPx : c.size.w;
+    const cardH = c.state === "minimized" ? dotPx : c.size.h;
     positions.set(c.id, {
       x: cx + radius * Math.cos(angle) - cardW / 2,
       y: cy + radius * Math.sin(angle) - cardH / 2,

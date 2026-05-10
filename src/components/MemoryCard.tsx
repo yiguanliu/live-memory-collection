@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { snapTo } from "@/lib/pattern";
-import type { Collection, Settings } from "@/types";
+import { DOT_SIZE_PX, type Collection, type Settings } from "@/types";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -107,8 +107,9 @@ export function MemoryCard({
       const el = canvasRef.current;
       if (!el) return;
       const r = el.getBoundingClientRect();
-      const w = state === "minimized" ? 28 : size.w;
-      const h = state === "minimized" ? 28 : size.h;
+      const dotPx = DOT_SIZE_PX[settings.dotSize];
+      const w = state === "minimized" ? dotPx : size.w;
+      const h = state === "minimized" ? dotPx : size.h;
 
       const minX = margin;
       const minY = margin;
@@ -130,7 +131,7 @@ export function MemoryCard({
     recompute();
     window.addEventListener("resize", recompute);
     return () => window.removeEventListener("resize", recompute);
-  }, [canvasRef, margin, size.w, size.h, state, x, y]);
+  }, [canvasRef, margin, size.w, size.h, state, settings.dotSize, x, y]);
 
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
@@ -172,9 +173,10 @@ export function MemoryCard({
 
   if (state === "fullscreen") return null;
 
+  const dotPx = DOT_SIZE_PX[settings.dotSize];
   const isMinimized = state === "minimized";
-  const renderW = isMinimized ? 28 : size.w;
-  const renderH = isMinimized ? 28 : size.h;
+  const renderW = isMinimized ? dotPx : size.w;
+  const renderH = isMinimized ? dotPx : size.h;
   const radius = isMinimized ? 999 : 23;
   const currentPhoto = photos[photoIndex];
 

@@ -10,6 +10,7 @@ import {
 import { AddPhotosDialog } from "@/components/AddPhotosDialog";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { SortPanel } from "@/components/SortPanel";
+import { ThemePanel } from "@/components/ThemePanel";
 import { IntroOverlay } from "@/components/IntroOverlay";
 import {
   Tooltip,
@@ -18,7 +19,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { initialCollections } from "@/data";
-import { DEFAULT_SETTINGS, type Collection, type Settings } from "@/types";
+import {
+  DEFAULT_SETTINGS,
+  DOT_SIZE_PX,
+  type Collection,
+  type Settings,
+} from "@/types";
 import { patternBackground } from "@/lib/pattern";
 import { computeSortedPositions, type SortMode } from "@/lib/layout";
 import { uid } from "@/lib/utils";
@@ -90,8 +96,15 @@ export default function App() {
     const el = canvasRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
+    const dotPx = DOT_SIZE_PX[settings.dotSize];
     setCollections((prev) => {
-      const positions = computeSortedPositions(prev, mode, r.width, r.height);
+      const positions = computeSortedPositions(
+        prev,
+        mode,
+        r.width,
+        r.height,
+        dotPx
+      );
       return prev.map((c) => {
         const p = positions.get(c.id);
         return p ? { ...c, position: p } : c;
@@ -174,6 +187,7 @@ export default function App() {
           </TooltipTrigger>
           <TooltipContent side="right">Restore all</TooltipContent>
         </Tooltip>
+        <ThemePanel settings={settings} onChange={setSettings} />
       </div>
 
       {/* Right rail: vertically centered, mirrors the left rail. Holds the
