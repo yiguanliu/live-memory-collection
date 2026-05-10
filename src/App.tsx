@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Maximize2, Minimize2 } from "lucide-react";
+import { Analytics } from "@vercel/analytics/react";
 import { MemoryCard } from "@/components/MemoryCard";
 import { FullscreenView } from "@/components/FullscreenView";
 import {
@@ -323,6 +324,7 @@ export default function App() {
         }}
       />
     </div>
+    <Analytics />
     </TooltipProvider>
   );
 }
