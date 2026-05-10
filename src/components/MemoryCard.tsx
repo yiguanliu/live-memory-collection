@@ -225,8 +225,8 @@ export function MemoryCard({
           scale: 1,
           opacity: 1,
           boxShadow: isDragging
-            ? // dragging: card is "picked up" — strong shadow + bright halo
-              "0 0 0 1px rgba(255,255,255,0.85), 0 0 38px rgba(255,255,255,0.38), 0 30px 60px -10px rgba(0,0,0,0.4), 0 14px 30px rgba(0,0,0,0.22)"
+            ? // dragging: card is "picked up" — themed outline + halo + drop
+              "0 0 0 1px rgb(var(--accent-rgb,226 168 122) / 0.85), 0 0 38px rgb(var(--accent-rgb,226 168 122) / 0.38), 0 30px 60px -10px rgba(0,0,0,0.4), 0 14px 30px rgba(0,0,0,0.22)"
             : isMinimized
             ? "0 4px 10px rgba(0, 0, 0, 0.25)"
             : // resting: just a soft drop shadow, no outline
@@ -237,20 +237,19 @@ export function MemoryCard({
           isMinimized
             ? { scale: 1.12 }
             : {
-                // hover: outline appears with a soft white glow
+                // hover: themed outline + soft glow in the active accent
                 boxShadow:
-                  "0 0 0 1px rgba(255,255,255,0.70), 0 0 28px rgba(255,255,255,0.28), 0 8px 22px 3px rgba(0,0,0,0.12)",
+                  "0 0 0 1px rgb(var(--accent-rgb,226 168 122) / 0.70), 0 0 28px rgb(var(--accent-rgb,226 168 122) / 0.28), 0 8px 22px 3px rgba(0,0,0,0.12)",
               }
         }
         whileTap={
           isMinimized
             ? { scale: 1.08 }
             : {
-                // active: card lifts toward cursor — slight scale up + stronger
-                // shadow for the "picked up" feel.
+                // active: stronger themed outline + halo for the "picked up" feel
                 scale: 1.04,
                 boxShadow:
-                  "0 0 0 1px rgba(255,255,255,0.85), 0 0 38px rgba(255,255,255,0.38), 0 30px 60px -10px rgba(0,0,0,0.4), 0 14px 30px rgba(0,0,0,0.22)",
+                  "0 0 0 1px rgb(var(--accent-rgb,226 168 122) / 0.85), 0 0 38px rgb(var(--accent-rgb,226 168 122) / 0.38), 0 30px 60px -10px rgba(0,0,0,0.4), 0 14px 30px rgba(0,0,0,0.22)",
               }
         }
         transition={SPRING}
