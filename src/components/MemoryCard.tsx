@@ -171,6 +171,29 @@ export function MemoryCard({
     onChange({ position: { x: nx, y: ny } });
   };
 
+  // Pseudo-3D lighting: shift the white highlight at the top of the
+  // peach-frame gradient toward the OPPOSITE corner of the cursor, as if
+  // the card is reflecting light from a source on the far side. Mutates
+  // CSS vars directly via setProperty so it doesn't churn React.
+  const handleHoverMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== "mouse") return;
+    const t = e.currentTarget;
+    const r = t.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0) return;
+    const mx = (e.clientX - r.left) / r.width;
+    const my = (e.clientY - r.top) / r.height;
+    // Mirror across center, then clamp into [-25%, 125%] so the
+    // highlight can sit just outside the card for grazing angles.
+    const ox = (1 - mx) * 100;
+    const oy = (1 - my) * 100;
+    t.style.setProperty("--hl-x", `${ox}%`);
+    t.style.setProperty("--hl-y", `${oy}%`);
+  };
+  const handleHoverLeave = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.currentTarget.style.removeProperty("--hl-x");
+    e.currentTarget.style.removeProperty("--hl-y");
+  };
+
   if (state === "fullscreen") return null;
 
   const dotPx = DOT_SIZE_PX[settings.dotSize];
@@ -204,6 +227,8 @@ export function MemoryCard({
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onPointerDown={onFocus}
+        onPointerMove={handleHoverMove}
+        onPointerLeave={handleHoverLeave}
         // Double-tap to restore. A single tap is a no-op so the dot can
         // be focused / pressed without expanding; the second tap within
         // ~320ms commits.

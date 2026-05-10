@@ -37,7 +37,7 @@
 
   .peach-frame {
     background: radial-gradient(
-      ellipse at 50% 0%,
+      ellipse at var(--hl-x, 50%) var(--hl-y, 0%),
       #ffffff 0%,
       rgb(var(--accent-rgb, 226 168 122) / 0.45) 50%,
       rgb(var(--accent-rgb, 226 168 122) / 0.78) 75%,
