@@ -98,10 +98,11 @@ export function ThemePanel({ settings, onChange }: Props) {
                 Diameter of the minimized dot.
               </p>
             </div>
-            <div className="flex items-center justify-around rounded-md border border-stone-200 bg-stone-50 p-2">
+            <div className="flex items-center justify-around">
               {(Object.keys(DOT_SIZE_PX) as DotSize[]).map((size) => {
                 const px = DOT_SIZE_PX[size];
                 const active = settings.dotSize === size;
+                const themeRgb = THEMES[settings.theme].overlayRgb;
                 return (
                   <button
                     key={size}
@@ -110,16 +111,20 @@ export function ThemePanel({ settings, onChange }: Props) {
                     className={cn(
                       "flex flex-col items-center gap-1 rounded p-2 transition",
                       active
-                        ? "bg-white shadow-sm"
-                        : "hover:bg-white/70"
+                        ? "bg-white/40 ring-1 ring-stone-800/40"
+                        : "hover:bg-white/20"
                     )}
                     aria-pressed={active}
                   >
                     <span
-                      className="rounded-full bg-stone-700"
-                      style={{ width: px, height: px }}
+                      className="rounded-full"
+                      style={{
+                        width: px,
+                        height: px,
+                        background: `rgb(${themeRgb.replaceAll(" ", ", ")})`,
+                      }}
                     />
-                    <span className="text-[10px] font-medium text-stone-600">
+                    <span className="text-[10px] font-medium text-stone-700">
                       {SIZE_LABELS[size]}
                     </span>
                   </button>

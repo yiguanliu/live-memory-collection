@@ -25,18 +25,6 @@ export const initialCollections: Collection[] = [
     z: 2,
   },
   {
-    id: "eliza",
-    name: "Eliza Stone",
-    date: "14th July, 2024",
-    label: "Coastal Dreams",
-    photos: [],
-    position: { x: 152, y: 386 },
-    size: { w: 198, h: 207 },
-    state: "normal",
-    photoIndex: 0,
-    z: 3,
-  },
-  {
     id: "hazel",
     name: "Hazel Bloom",
     date: "1st January, 2025",
