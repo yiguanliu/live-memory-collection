@@ -66,7 +66,14 @@ export function SortPanel({ onSort }: Props) {
                 onClick={() => onSort(mode)}
                 className="flex items-center gap-3 rounded-md border border-transparent px-2 py-2 text-left transition hover:border-stone-200 hover:bg-stone-50 active:scale-[0.99]"
               >
-                <span className="grid h-7 w-7 place-items-center rounded-md bg-peach-50 text-peach-600">
+                <span
+                  className="grid h-7 w-7 place-items-center rounded-md"
+                  style={{
+                    background:
+                      "rgb(var(--accent-rgb, 226 168 122) / 0.22)",
+                    color: "rgb(var(--accent-deep-rgb, 180 104 43))",
+                  }}
+                >
                   <Icon className="h-3.5 w-3.5" />
                 </span>
                 <span className="grid">

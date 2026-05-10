@@ -143,7 +143,7 @@ function Toggle({
       aria-pressed={pressed}
       className={cn(
         "relative h-5 w-9 rounded-full transition-colors",
-        pressed ? "bg-peach-300" : "bg-stone-300"
+        pressed ? "bg-[var(--accent,#e2a87a)]" : "bg-stone-300"
       )}
     >
       <span

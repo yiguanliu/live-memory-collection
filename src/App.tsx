@@ -28,7 +28,7 @@ import {
 } from "@/types";
 import { patternBackground } from "@/lib/pattern";
 import { computeSortedPositions, type SortMode } from "@/lib/layout";
-import { uid } from "@/lib/utils";
+import { hexToRgb, uid } from "@/lib/utils";
 
 type IntroPhase = "wave" | "dots" | "expand" | "done";
 
@@ -138,19 +138,32 @@ export default function App() {
 
   const addingCollection = collections.find((c) => c.id === addingTo);
 
-  const themeOverlay = THEMES[settings.theme].overlayRgb;
+  const palette = THEMES[settings.theme];
+  const accentRgb = hexToRgb(palette.from);
+  const accentDeepRgb = palette.overlayRgb;
+
+  // Mirror theme vars onto :root so portal-rendered overlays (Radix
+  // Popover, Tooltip, Dialog) inherit them. The frame container alone
+  // isn't enough because portals attach to document.body, outside it.
+  useEffect(() => {
+    const root = document.documentElement.style;
+    root.setProperty("--overlay-rgb", accentDeepRgb);
+    root.setProperty("--overlay-opacity", settings.overlayOpacity.toString());
+    root.setProperty("--accent", palette.from);
+    root.setProperty("--accent-rgb", accentRgb);
+    root.setProperty("--accent-deep-rgb", accentDeepRgb);
+  }, [
+    palette.from,
+    accentRgb,
+    accentDeepRgb,
+    settings.overlayOpacity,
+  ]);
 
   return (
     <TooltipProvider delayDuration={250} skipDelayDuration={120}>
     <div
       className="relative h-full w-full overflow-hidden"
-      style={
-        {
-          ...patternBackground(settings),
-          "--overlay-rgb": themeOverlay,
-          "--overlay-opacity": settings.overlayOpacity.toString(),
-        } as React.CSSProperties
-      }
+      style={patternBackground(settings)}
     >
       {/* Crosshair + circle reference (subtle) */}
       <div className="pointer-events-none absolute inset-0">
