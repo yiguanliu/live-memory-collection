@@ -89,5 +89,5 @@ export const DEFAULT_SETTINGS: Settings = {
   showWaves: true,
   theme: "sunset",
   dotSize: "md",
-  overlayOpacity: 0.76,
+  overlayOpacity: 0.25,
 };
