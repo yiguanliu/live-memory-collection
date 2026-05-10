@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import {
   AnimatePresence,
+  animate,
   motion,
   useMotionValue,
   type PanInfo,
@@ -33,6 +34,7 @@ type Props = {
   onChange: (next: Partial<Collection>) => void;
   onFocus: () => void;
   onAddPhotos: () => void;
+  onDelete: () => void;
 };
 
 const SPRING = {
@@ -41,8 +43,6 @@ const SPRING = {
   damping: 34,
   mass: 0.5,
 };
-const MORPH_DURATION_MS = 280;
-
 const slideVariants = {
   enter: (dir: number) => ({ x: dir > 0 ? "100%" : "-100%", opacity: 0 }),
   center: { x: 0, opacity: 1 },
@@ -65,6 +65,7 @@ export function MemoryCard({
   onChange,
   onFocus,
   onAddPhotos,
+  onDelete,
 }: Props) {
   const { state, photos, photoIndex, size, position, name, date, label } =
     collection;
@@ -72,9 +73,23 @@ export function MemoryCard({
   const x = useMotionValue(position.x);
   const y = useMotionValue(position.y);
 
+  // Stable ref for onChange so the resize effect doesn't re-bind on every parent render.
+  const onChangeRef = useRef(onChange);
   useEffect(() => {
-    x.set(position.x);
-    y.set(position.y);
+    onChangeRef.current = onChange;
+  });
+
+  // Sync motion values with prop position. If they're already in sync
+  // (e.g. just after a drag ends, or after the resize-clamp set them),
+  // skip — otherwise animate so sort/arrange actions flow smoothly to
+  // the new position.
+  useEffect(() => {
+    const cx = x.get();
+    const cy = y.get();
+    if (Math.abs(cx - position.x) > 0.5 || Math.abs(cy - position.y) > 0.5) {
+      animate(x, position.x, { type: "spring", stiffness: 220, damping: 28 });
+      animate(y, position.y, { type: "spring", stiffness: 220, damping: 28 });
+    }
   }, [position.x, position.y, x, y]);
 
   const [dragConstraints, setDragConstraints] = useState({
@@ -84,30 +99,61 @@ export function MemoryCard({
     bottom: 0,
   });
 
-  useEffect(() => {
+  // Compute drag bounds from canvas size and clamp the current position into
+  // them. Runs synchronously after layout so initial paint already shows
+  // any out-of-viewport seed positions clamped into view.
+  useLayoutEffect(() => {
     const recompute = () => {
       const el = canvasRef.current;
       if (!el) return;
       const r = el.getBoundingClientRect();
       const w = state === "minimized" ? 28 : size.w;
       const h = state === "minimized" ? 28 : size.h;
-      setDragConstraints({
-        left: margin,
-        top: margin,
-        right: Math.max(margin, r.width - w - margin),
-        bottom: Math.max(margin, r.height - h - margin),
-      });
+
+      const minX = margin;
+      const minY = margin;
+      const maxX = Math.max(margin, r.width - w - margin);
+      const maxY = Math.max(margin, r.height - h - margin);
+
+      setDragConstraints({ left: minX, top: minY, right: maxX, bottom: maxY });
+
+      const cx = x.get();
+      const cy = y.get();
+      const nx = Math.min(Math.max(cx, minX), maxX);
+      const ny = Math.min(Math.max(cy, minY), maxY);
+      if (nx !== cx || ny !== cy) {
+        x.set(nx);
+        y.set(ny);
+        onChangeRef.current({ position: { x: nx, y: ny } });
+      }
     };
     recompute();
     window.addEventListener("resize", recompute);
     return () => window.removeEventListener("resize", recompute);
-  }, [canvasRef, margin, size.w, size.h, state]);
+  }, [canvasRef, margin, size.w, size.h, state, x, y]);
 
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
 
+  // Double-tap detection for restoring a minimized dot. A single tap on
+  // the dot does nothing — only a second tap within DOUBLE_TAP_MS
+  // commits to restore. Drag still works because framer-motion cancels
+  // tap when pointer movement crosses the drag threshold.
+  const lastTapRef = useRef(0);
+  const DOUBLE_TAP_MS = 320;
+  const handleDotTap = () => {
+    const now = Date.now();
+    if (now - lastTapRef.current <= DOUBLE_TAP_MS) {
+      lastTapRef.current = 0;
+      onChange({ state: "normal" });
+    } else {
+      lastTapRef.current = now;
+    }
+  };
+
   const handleDragStart = (_: unknown, _info: PanInfo) => {
     setIsDragging(true);
+    lastTapRef.current = 0;
     onFocus();
   };
 
@@ -133,53 +179,86 @@ export function MemoryCard({
   const currentPhoto = photos[photoIndex];
 
   return (
-    <motion.div
-      layoutId={`card-${collection.id}`}
-      drag={!isResizing}
-      dragConstraints={dragConstraints}
-      dragElastic={0.08}
-      dragMomentum
-      dragTransition={{
-        power: 0.35,
-        timeConstant: 220,
-        bounceStiffness: 500,
-        bounceDamping: 28,
-        // Snap inertia target onto the grid step.
-        modifyTarget: (t) =>
-          settings.snap && settings.pattern !== "none"
-            ? snapTo(t, settings.density)
-            : t,
-      }}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      onPointerDown={onFocus}
-      style={{ x, y, zIndex: collection.z }}
-      initial={{ scale: 0.4, opacity: 0 }}
-      animate={{
-        width: renderW,
-        height: renderH,
-        borderRadius: radius,
-        scale: 1,
-        opacity: 1,
-        boxShadow: isDragging
-          ? "0 30px 60px -10px rgba(0, 0, 0, 0.35), 0 12px 25px rgba(0, 0, 0, 0.18)"
-          : isMinimized
-          ? "0 4px 10px rgba(0, 0, 0, 0.25)"
-          : "0 5px 15px 3px rgba(0, 0, 0, 0.1)",
-      }}
-      whileTap={isMinimized ? { scale: 1.08 } : { scale: 0.99 }}
-      whileHover={isMinimized ? { scale: 1.12 } : {}}
-      transition={SPRING}
-      className={cn(
-        "group/card absolute overflow-hidden select-none touch-none border border-white peach-frame",
-        isDragging ? "cursor-grabbing" : "cursor-grab"
-      )}
-    >
+    // No shape morphing: each state has its own motion.div with the correct
+    // size + border-radius pinned in inline style. The two cross-fade with
+    // scale via AnimatePresence — never a half-morphed oval in between.
+    <AnimatePresence initial={false} mode="popLayout">
+      <motion.div
+        key={isMinimized ? "dot" : "card"}
+        drag={!isResizing}
+        dragConstraints={dragConstraints}
+        dragElastic={0.08}
+        dragMomentum
+        dragTransition={{
+          power: 0.35,
+          timeConstant: 220,
+          bounceStiffness: 500,
+          bounceDamping: 28,
+          modifyTarget: (t) =>
+            settings.snap && settings.pattern !== "none"
+              ? snapTo(t, settings.density)
+              : t,
+        }}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onPointerDown={onFocus}
+        // Double-tap to restore. A single tap is a no-op so the dot can
+        // be focused / pressed without expanding; the second tap within
+        // ~320ms commits.
+        onTap={isMinimized ? handleDotTap : undefined}
+        style={{
+          x,
+          y,
+          zIndex: collection.z,
+          width: renderW,
+          height: renderH,
+          borderRadius: radius,
+          // Anchor scale animations to the top-left corner instead of the
+          // center, so the entry/exit appears to grow out from / shrink
+          // back into the card's positioned origin (where x,y land).
+          transformOrigin: "top left",
+        }}
+        initial={{ scale: 0.4, opacity: 0 }}
+        animate={{
+          scale: 1,
+          opacity: 1,
+          boxShadow: isDragging
+            ? // dragging: card is "picked up" — strong shadow + bright halo
+              "0 0 0 1px rgba(255,255,255,0.85), 0 0 38px rgba(255,255,255,0.38), 0 30px 60px -10px rgba(0,0,0,0.4), 0 14px 30px rgba(0,0,0,0.22)"
+            : isMinimized
+            ? "0 4px 10px rgba(0, 0, 0, 0.25)"
+            : // resting: just a soft drop shadow, no outline
+              "0 5px 15px 3px rgba(0, 0, 0, 0.10)",
+        }}
+        exit={{ scale: 0.4, opacity: 0 }}
+        whileHover={
+          isMinimized
+            ? { scale: 1.12 }
+            : {
+                // hover: outline appears with a soft white glow
+                boxShadow:
+                  "0 0 0 1px rgba(255,255,255,0.70), 0 0 28px rgba(255,255,255,0.28), 0 8px 22px 3px rgba(0,0,0,0.12)",
+              }
+        }
+        whileTap={
+          isMinimized
+            ? { scale: 1.08 }
+            : {
+                // active: card lifts toward cursor — slight scale up + stronger
+                // shadow for the "picked up" feel.
+                scale: 1.04,
+                boxShadow:
+                  "0 0 0 1px rgba(255,255,255,0.85), 0 0 38px rgba(255,255,255,0.38), 0 30px 60px -10px rgba(0,0,0,0.4), 0 14px 30px rgba(0,0,0,0.22)",
+              }
+        }
+        transition={SPRING}
+        className={cn(
+          "group/card absolute overflow-hidden select-none touch-none peach-frame",
+          isDragging ? "cursor-grabbing" : "cursor-grab"
+        )}
+      >
       {isMinimized ? (
-        <MinimizedDot
-          collection={collection}
-          onExpand={() => onChange({ state: "normal" })}
-        />
+        <MinimizedDot collection={collection} />
       ) : (
         <NormalCard
           collection={collection}
@@ -190,6 +269,7 @@ export function MemoryCard({
           onMinimize={() => onChange({ state: "minimized" })}
           onFullscreen={() => onChange({ state: "fullscreen" })}
           onAddPhotos={onAddPhotos}
+          onDelete={onDelete}
           onResizeStart={() => setIsResizing(true)}
           onResizeEnd={() => setIsResizing(false)}
           onResize={(dw, dh) => {
@@ -213,7 +293,8 @@ export function MemoryCard({
           }
         />
       )}
-    </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 }
 
@@ -221,22 +302,19 @@ export function MemoryCard({
 // Minimized dot
 // ============================================================
 
-function MinimizedDot({
-  collection,
-  onExpand,
-}: {
-  collection: Collection;
-  onExpand: () => void;
-}) {
+function MinimizedDot({ collection }: { collection: Collection }) {
   const photo = collection.photos[collection.photoIndex];
+  // Plain div — no button, no stopPropagation. The parent motion.div
+  // handles both drag and tap (tap → restore is wired via onTap on the
+  // parent so the dot can be dragged without restoring on click).
+  // Wrap with the same Radix Tooltip the toolbar buttons use, instead
+  // of the browser-native title attribute, so the hover label is
+  // visually consistent with the rest of the chrome.
   return (
-    <button
-      onPointerDown={(e) => e.stopPropagation()}
-      onClick={onExpand}
-      className="absolute inset-0 overflow-hidden rounded-full focus:outline-none"
-      title={`Expand ${collection.name}`}
-    >
-      <div className="absolute inset-[1px] overflow-hidden rounded-full">
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="absolute inset-0 overflow-hidden rounded-full">
+          <div className="absolute inset-[1px] overflow-hidden rounded-full">
         {photo ? (
           <img
             src={photo}
@@ -253,9 +331,14 @@ function MinimizedDot({
             }}
           />
         )}
-        <div className="photo-overlay absolute inset-0 rounded-full" />
-      </div>
-    </button>
+          <div className="photo-overlay absolute inset-0 rounded-full" />
+          </div>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="right">
+        Double-tap to expand {collection.name}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -272,6 +355,7 @@ function NormalCard({
   onMinimize,
   onFullscreen,
   onAddPhotos,
+  onDelete,
   onResizeStart,
   onResizeEnd,
   onResize,
@@ -286,6 +370,7 @@ function NormalCard({
   onMinimize: () => void;
   onFullscreen: () => void;
   onAddPhotos: () => void;
+  onDelete: () => void;
   onResizeStart: () => void;
   onResizeEnd: () => void;
   onResize: (dw: number, dh: number) => void;
@@ -329,13 +414,7 @@ function NormalCard({
   };
 
   return (
-    <motion.div
-      className="absolute inset-0"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.18, delay: MORPH_DURATION_MS / 1000 - 0.05 }}
-    >
+    <div className="absolute inset-0">
       {/* Photo with progressive bottom-to-top blur. Sliding carousel. */}
       <div className="absolute inset-[2px] overflow-hidden rounded-[22px]">
         <AnimatePresence initial={false} custom={photoDir} mode="popLayout">
@@ -355,9 +434,11 @@ function NormalCard({
         <div className="photo-overlay pointer-events-none absolute inset-0 rounded-[22px]" />
       </div>
 
-      {/* Top-left: macOS-style window controls — fade in on card hover */}
+      {/* Top-left: macOS-style window controls (red close · yellow minimize ·
+          green zoom). Fades in on card hover. */}
       <WindowControls
         className="absolute left-3 top-3 z-20 opacity-0 pointer-events-none transition-opacity duration-200 ease-out group-hover/card:opacity-100 group-hover/card:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto"
+        onDelete={onDelete}
         onMinimize={onMinimize}
         onFullscreen={onFullscreen}
       />
@@ -494,6 +575,6 @@ function NormalCard({
           <circle cx="5" cy="9" r="1" />
         </svg>
       </div>
-    </motion.div>
+    </div>
   );
 }

@@ -1,8 +1,4 @@
-import {
-  Maximize2,
-  Minimize2,
-  Settings as SettingsIcon,
-} from "lucide-react";
+import { Settings as SettingsIcon } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -16,8 +12,6 @@ import { cn } from "@/lib/utils";
 type Props = {
   settings: Settings;
   onChange: (next: Settings) => void;
-  onMinimizeAll: () => void;
-  onRestoreAll: () => void;
 };
 
 const PATTERNS: { value: PatternType; label: string }[] = [
@@ -26,12 +20,7 @@ const PATTERNS: { value: PatternType; label: string }[] = [
   { value: "none", label: "Off" },
 ];
 
-export function SettingsPanel({
-  settings,
-  onChange,
-  onMinimizeAll,
-  onRestoreAll,
-}: Props) {
+export function SettingsPanel({ settings, onChange }: Props) {
   return (
     <Popover>
       <PopoverTrigger
@@ -40,12 +29,12 @@ export function SettingsPanel({
       >
         <SettingsIcon className="h-4 w-4" />
       </PopoverTrigger>
-      <PopoverContent>
+      <PopoverContent side="right" align="center" sideOffset={12}>
         <div className="grid gap-4">
           <div className="grid gap-1">
             <h3 className="text-sm font-semibold">Background</h3>
             <p className="text-xs text-stone-500">
-              Pattern shown behind the cards.
+              Pattern and ambient motion behind the cards.
             </p>
           </div>
 
@@ -95,47 +84,53 @@ export function SettingsPanel({
                 Cards land on the pattern points.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => onChange({ ...settings, snap: !settings.snap })}
-              className={cn(
-                "relative h-5 w-9 rounded-full transition-colors",
-                settings.snap ? "bg-peach-300" : "bg-stone-300"
-              )}
-              aria-pressed={settings.snap}
-            >
-              <span
-                className={cn(
-                  "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all",
-                  settings.snap ? "left-[18px]" : "left-0.5"
-                )}
-              />
-            </button>
+            <Toggle
+              pressed={settings.snap}
+              onPressedChange={(v) => onChange({ ...settings, snap: v })}
+            />
           </div>
 
-          <div className="grid gap-2 border-t border-stone-200 pt-3">
-            <Label>Bulk actions</Label>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={onMinimizeAll}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-stone-700 transition hover:border-peach-300 hover:bg-peach-50/60 active:scale-95"
-              >
-                <Minimize2 className="h-3.5 w-3.5" />
-                Minimize all
-              </button>
-              <button
-                type="button"
-                onClick={onRestoreAll}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-stone-700 transition hover:border-peach-300 hover:bg-peach-50/60 active:scale-95"
-              >
-                <Maximize2 className="h-3.5 w-3.5" />
-                Restore all
-              </button>
+          <div className="flex items-center justify-between">
+            <div className="grid gap-0.5">
+              <Label>Wave animation</Label>
+              <p className="text-[11px] text-stone-500">
+                Sin-wave motion in the background.
+              </p>
             </div>
+            <Toggle
+              pressed={settings.showWaves}
+              onPressedChange={(v) => onChange({ ...settings, showWaves: v })}
+            />
           </div>
         </div>
       </PopoverContent>
     </Popover>
+  );
+}
+
+function Toggle({
+  pressed,
+  onPressedChange,
+}: {
+  pressed: boolean;
+  onPressedChange: (v: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onPressedChange(!pressed)}
+      aria-pressed={pressed}
+      className={cn(
+        "relative h-5 w-9 rounded-full transition-colors",
+        pressed ? "bg-peach-300" : "bg-stone-300"
+      )}
+    >
+      <span
+        className={cn(
+          "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all",
+          pressed ? "left-[18px]" : "left-0.5"
+        )}
+      />
+    </button>
   );
 }

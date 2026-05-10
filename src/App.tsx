@@ -1,24 +1,33 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Plus } from "lucide-react";
+import { Maximize2, Minimize2 } from "lucide-react";
 import { MemoryCard } from "@/components/MemoryCard";
 import { FullscreenView } from "@/components/FullscreenView";
-import { CreateCollectionDialog } from "@/components/CreateCollectionDialog";
+import {
+  CreateCollectionPopover,
+  type NewCollectionInput,
+} from "@/components/CreateCollectionPopover";
 import { AddPhotosDialog } from "@/components/AddPhotosDialog";
 import { SettingsPanel } from "@/components/SettingsPanel";
+import { SortPanel } from "@/components/SortPanel";
 import { IntroOverlay } from "@/components/IntroOverlay";
-import { Button } from "@/components/ui/button";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { initialCollections } from "@/data";
 import { DEFAULT_SETTINGS, type Collection, type Settings } from "@/types";
 import { patternBackground } from "@/lib/pattern";
+import { computeSortedPositions, type SortMode } from "@/lib/layout";
+import { uid } from "@/lib/utils";
 
 type IntroPhase = "wave" | "dots" | "expand" | "done";
 
 export default function App() {
   const [collections, setCollections] = useState<Collection[]>(initialCollections);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
-  const [createOpen, setCreateOpen] = useState(false);
   const [addingTo, setAddingTo] = useState<string | null>(null);
   const [intro, setIntro] = useState<IntroPhase>("wave");
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -49,6 +58,46 @@ export default function App() {
         c.state === "fullscreen" ? c : { ...c, state: "normal" }
       )
     );
+  const deleteCollection = (id: string) =>
+    setCollections((prev) => prev.filter((c) => c.id !== id));
+
+  const handleCreateCollection = (input: NewCollectionInput) => {
+    const el = canvasRef.current;
+    const w = el?.clientWidth ?? 1024;
+    const h = el?.clientHeight ?? 768;
+    setCollections((prev) => {
+      const maxZ = prev.reduce((m, c) => Math.max(m, c.z), 0);
+      const collection: Collection = {
+        id: uid(),
+        name: input.name,
+        date: input.date,
+        label: input.label,
+        photos: input.photos,
+        position: {
+          x: w / 2 - 110 + Math.random() * 40,
+          y: h / 2 - 140 + Math.random() * 40,
+        },
+        size: { w: 220, h: 280 },
+        state: "normal",
+        photoIndex: 0,
+        z: maxZ + 1,
+      };
+      return [...prev, collection];
+    });
+  };
+
+  const sortCards = (mode: SortMode) => {
+    const el = canvasRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    setCollections((prev) => {
+      const positions = computeSortedPositions(prev, mode, r.width, r.height);
+      return prev.map((c) => {
+        const p = positions.get(c.id);
+        return p ? { ...c, position: p } : c;
+      });
+    });
+  };
 
   const updateCollection = (id: string, patch: Partial<Collection>) => {
     setCollections((prev) =>
@@ -73,20 +122,6 @@ export default function App() {
     });
   };
 
-  const nextZ = useMemo(
-    () => collections.reduce((m, c) => Math.max(m, c.z), 0) + 1,
-    [collections]
-  );
-
-  const spawnPosition = useMemo(() => {
-    const w = canvasRef.current?.clientWidth ?? 1024;
-    const h = canvasRef.current?.clientHeight ?? 768;
-    return {
-      x: w / 2 - 110 + Math.random() * 40,
-      y: h / 2 - 140 + Math.random() * 40,
-    };
-  }, [createOpen]);
-
   const addingCollection = collections.find((c) => c.id === addingTo);
 
   return (
@@ -109,26 +144,42 @@ export default function App() {
         </p>
       </div>
 
-      {/* Top-left: Settings */}
-      <div className="absolute left-6 top-5 z-40">
-        <SettingsPanel
-          settings={settings}
-          onChange={setSettings}
-          onMinimizeAll={minimizeAll}
-          onRestoreAll={restoreAll}
-        />
+      {/* Left rail: vertically centered toolbar with even spacing. */}
+      <div className="absolute left-6 top-1/2 z-40 flex -translate-y-1/2 flex-col items-start gap-2">
+        <SettingsPanel settings={settings} onChange={setSettings} />
+        <SortPanel onSort={sortCards} />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={minimizeAll}
+              aria-label="Minimize all"
+              className="grid h-9 w-9 place-items-center rounded-full border border-white/30 bg-white/20 text-white backdrop-blur-md transition hover:bg-white/30 active:scale-95"
+            >
+              <Minimize2 className="h-4 w-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right">Minimize all</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={restoreAll}
+              aria-label="Restore all"
+              className="grid h-9 w-9 place-items-center rounded-full border border-white/30 bg-white/20 text-white backdrop-blur-md transition hover:bg-white/30 active:scale-95"
+            >
+              <Maximize2 className="h-4 w-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right">Restore all</TooltipContent>
+        </Tooltip>
       </div>
 
-      {/* Top-right: Create */}
-      <div className="absolute right-6 top-5 z-40">
-        <Button
-          variant="primary"
-          onClick={() => setCreateOpen(true)}
-          className="shadow-lg"
-        >
-          <Plus />
-          New collection
-        </Button>
+      {/* Right rail: vertically centered, mirrors the left rail. Holds the
+          New-collection trigger (which opens an anchored popover form). */}
+      <div className="absolute right-6 top-1/2 z-40 flex -translate-y-1/2 flex-col items-end gap-2">
+        <CreateCollectionPopover onCreate={handleCreateCollection} />
       </div>
 
       {/* Bottom title */}
@@ -140,8 +191,9 @@ export default function App() {
         </h1>
       </div>
 
-      {/* Sin-wave intro overlay */}
-      <IntroOverlay visible={intro !== "done"} />
+      {/* Sin-wave overlay — fades in during the intro and stays as ambient
+          motion afterwards. Toggleable from settings. */}
+      <IntroOverlay visible={settings.showWaves} />
 
       {/* Card canvas */}
       <div
@@ -155,25 +207,28 @@ export default function App() {
           animate={{ opacity: intro === "wave" ? 0 : 1 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
         >
-          {collections.map((c) => {
-            const introMinimize =
-              (intro === "wave" || intro === "dots") &&
-              c.state === "normal";
-            const display: Collection = introMinimize
-              ? { ...c, state: "minimized" }
-              : c;
-            return (
-              <MemoryCard
-                key={c.id}
-                collection={display}
-                canvasRef={canvasRef}
-                settings={settings}
-                onChange={(patch) => updateCollection(c.id, patch)}
-                onFocus={() => focusCollection(c.id)}
-                onAddPhotos={() => setAddingTo(c.id)}
-              />
-            );
-          })}
+          <AnimatePresence>
+            {collections.map((c) => {
+              const introMinimize =
+                (intro === "wave" || intro === "dots") &&
+                c.state === "normal";
+              const display: Collection = introMinimize
+                ? { ...c, state: "minimized" }
+                : c;
+              return (
+                <MemoryCard
+                  key={c.id}
+                  collection={display}
+                  canvasRef={canvasRef}
+                  settings={settings}
+                  onChange={(patch) => updateCollection(c.id, patch)}
+                  onFocus={() => focusCollection(c.id)}
+                  onAddPhotos={() => setAddingTo(c.id)}
+                  onDelete={() => deleteCollection(c.id)}
+                />
+              );
+            })}
+          </AnimatePresence>
         </motion.div>
       </div>
 
@@ -219,14 +274,6 @@ export default function App() {
             />
           ))}
       </AnimatePresence>
-
-      <CreateCollectionDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        onCreate={(c) => setCollections((prev) => [...prev, c])}
-        spawnPosition={spawnPosition}
-        nextZ={nextZ}
-      />
 
       <AddPhotosDialog
         open={addingTo !== null}
