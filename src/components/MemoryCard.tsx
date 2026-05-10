@@ -307,12 +307,14 @@ function MinimizedDot({ collection }: { collection: Collection }) {
   // Plain div — no button, no stopPropagation. The parent motion.div
   // handles both drag and tap (tap → restore is wired via onTap on the
   // parent so the dot can be dragged without restoring on click).
+  // Wrap with the same Radix Tooltip the toolbar buttons use, instead
+  // of the browser-native title attribute, so the hover label is
+  // visually consistent with the rest of the chrome.
   return (
-    <div
-      className="absolute inset-0 overflow-hidden rounded-full"
-      title={`Double-tap to expand ${collection.name}`}
-    >
-      <div className="absolute inset-[1px] overflow-hidden rounded-full">
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="absolute inset-0 overflow-hidden rounded-full">
+          <div className="absolute inset-[1px] overflow-hidden rounded-full">
         {photo ? (
           <img
             src={photo}
@@ -329,9 +331,14 @@ function MinimizedDot({ collection }: { collection: Collection }) {
             }}
           />
         )}
-        <div className="photo-overlay absolute inset-0 rounded-full" />
-      </div>
-    </div>
+          <div className="photo-overlay absolute inset-0 rounded-full" />
+          </div>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="right">
+        Double-tap to expand {collection.name}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
