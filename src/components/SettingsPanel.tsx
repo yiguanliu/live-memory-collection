@@ -102,6 +102,27 @@ export function SettingsPanel({ settings, onChange }: Props) {
               onPressedChange={(v) => onChange({ ...settings, showWaves: v })}
             />
           </div>
+
+          <div className="grid gap-2 border-t border-stone-200 pt-3">
+            <div className="flex items-center justify-between">
+              <Label>Card overlay</Label>
+              <span className="text-xs text-stone-500">
+                {Math.round(settings.overlayOpacity * 100)}%
+              </span>
+            </div>
+            <p className="text-[11px] text-stone-500">
+              Tint strength of the themed gradient on photos.
+            </p>
+            <Slider
+              min={0}
+              max={1}
+              step={0.05}
+              value={[settings.overlayOpacity]}
+              onValueChange={([v]) =>
+                onChange({ ...settings, overlayOpacity: v })
+              }
+            />
+          </div>
         </div>
       </PopoverContent>
     </Popover>
@@ -122,7 +143,7 @@ function Toggle({
       aria-pressed={pressed}
       className={cn(
         "relative h-5 w-9 rounded-full transition-colors",
-        pressed ? "bg-peach-300" : "bg-stone-300"
+        pressed ? "bg-[var(--accent,#e2a87a)]" : "bg-stone-300"
       )}
     >
       <span

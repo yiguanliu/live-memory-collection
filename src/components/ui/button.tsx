@@ -11,7 +11,7 @@ const buttonVariants = cva(
         default:
           "bg-white/15 text-white backdrop-blur-md border border-white/30 hover:bg-white/25 active:bg-white/35 active:scale-[0.97]",
         primary:
-          "bg-peach-300 text-white shadow-[0_4px_12px_rgba(180,104,43,0.4)] hover:bg-peach-300/90 active:scale-[0.97]",
+          "bg-[var(--accent,#e2a87a)] text-white shadow-[0_4px_12px_rgb(var(--accent-deep-rgb,180_104_43)/0.35)] hover:opacity-90 active:scale-[0.97]",
         ghost:
           "hover:bg-white/15 text-white active:bg-white/25 active:scale-[0.94]",
         outline:

@@ -77,7 +77,7 @@ export function AddPhotosDialog({
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-stone-300 bg-stone-50 px-4 py-6 text-sm text-stone-500 transition hover:border-peach-300 hover:bg-peach-50/50"
+            className="flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-stone-300 bg-stone-50 px-4 py-6 text-sm text-stone-500 transition hover:border-[color:var(--accent,#e2a87a)] hover:bg-[rgb(var(--accent-rgb,226_168_122)/0.18)]"
           >
             <Upload className="h-5 w-5 text-stone-400" />
             <span>Click to choose images from your computer</span>

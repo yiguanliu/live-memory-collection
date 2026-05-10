@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { snapTo } from "@/lib/pattern";
-import type { Collection, Settings } from "@/types";
+import { DOT_SIZE_PX, type Collection, type Settings } from "@/types";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -107,8 +107,9 @@ export function MemoryCard({
       const el = canvasRef.current;
       if (!el) return;
       const r = el.getBoundingClientRect();
-      const w = state === "minimized" ? 28 : size.w;
-      const h = state === "minimized" ? 28 : size.h;
+      const dotPx = DOT_SIZE_PX[settings.dotSize];
+      const w = state === "minimized" ? dotPx : size.w;
+      const h = state === "minimized" ? dotPx : size.h;
 
       const minX = margin;
       const minY = margin;
@@ -130,7 +131,7 @@ export function MemoryCard({
     recompute();
     window.addEventListener("resize", recompute);
     return () => window.removeEventListener("resize", recompute);
-  }, [canvasRef, margin, size.w, size.h, state, x, y]);
+  }, [canvasRef, margin, size.w, size.h, state, settings.dotSize, x, y]);
 
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
@@ -172,9 +173,10 @@ export function MemoryCard({
 
   if (state === "fullscreen") return null;
 
+  const dotPx = DOT_SIZE_PX[settings.dotSize];
   const isMinimized = state === "minimized";
-  const renderW = isMinimized ? 28 : size.w;
-  const renderH = isMinimized ? 28 : size.h;
+  const renderW = isMinimized ? dotPx : size.w;
+  const renderH = isMinimized ? dotPx : size.h;
   const radius = isMinimized ? 999 : 23;
   const currentPhoto = photos[photoIndex];
 
@@ -223,8 +225,8 @@ export function MemoryCard({
           scale: 1,
           opacity: 1,
           boxShadow: isDragging
-            ? // dragging: card is "picked up" — strong shadow + bright halo
-              "0 0 0 1px rgba(255,255,255,0.85), 0 0 38px rgba(255,255,255,0.38), 0 30px 60px -10px rgba(0,0,0,0.4), 0 14px 30px rgba(0,0,0,0.22)"
+            ? // dragging: card is "picked up" — themed outline + halo + drop
+              "0 0 0 1px rgb(var(--accent-rgb,226 168 122) / 0.85), 0 0 38px rgb(var(--accent-rgb,226 168 122) / 0.38), 0 30px 60px -10px rgba(0,0,0,0.4), 0 14px 30px rgba(0,0,0,0.22)"
             : isMinimized
             ? "0 4px 10px rgba(0, 0, 0, 0.25)"
             : // resting: just a soft drop shadow, no outline
@@ -235,20 +237,19 @@ export function MemoryCard({
           isMinimized
             ? { scale: 1.12 }
             : {
-                // hover: outline appears with a soft white glow
+                // hover: themed outline + soft glow in the active accent
                 boxShadow:
-                  "0 0 0 1px rgba(255,255,255,0.70), 0 0 28px rgba(255,255,255,0.28), 0 8px 22px 3px rgba(0,0,0,0.12)",
+                  "0 0 0 1px rgb(var(--accent-rgb,226 168 122) / 0.70), 0 0 28px rgb(var(--accent-rgb,226 168 122) / 0.28), 0 8px 22px 3px rgba(0,0,0,0.12)",
               }
         }
         whileTap={
           isMinimized
             ? { scale: 1.08 }
             : {
-                // active: card lifts toward cursor — slight scale up + stronger
-                // shadow for the "picked up" feel.
+                // active: stronger themed outline + halo for the "picked up" feel
                 scale: 1.04,
                 boxShadow:
-                  "0 0 0 1px rgba(255,255,255,0.85), 0 0 38px rgba(255,255,255,0.38), 0 30px 60px -10px rgba(0,0,0,0.4), 0 14px 30px rgba(0,0,0,0.22)",
+                  "0 0 0 1px rgb(var(--accent-rgb,226 168 122) / 0.85), 0 0 38px rgb(var(--accent-rgb,226 168 122) / 0.38), 0 30px 60px -10px rgba(0,0,0,0.4), 0 14px 30px rgba(0,0,0,0.22)",
               }
         }
         transition={SPRING}

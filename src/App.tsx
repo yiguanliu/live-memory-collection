@@ -10,6 +10,7 @@ import {
 import { AddPhotosDialog } from "@/components/AddPhotosDialog";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { SortPanel } from "@/components/SortPanel";
+import { ThemePanel } from "@/components/ThemePanel";
 import { IntroOverlay } from "@/components/IntroOverlay";
 import {
   Tooltip,
@@ -18,10 +19,16 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { initialCollections } from "@/data";
-import { DEFAULT_SETTINGS, type Collection, type Settings } from "@/types";
+import {
+  DEFAULT_SETTINGS,
+  DOT_SIZE_PX,
+  THEMES,
+  type Collection,
+  type Settings,
+} from "@/types";
 import { patternBackground } from "@/lib/pattern";
 import { computeSortedPositions, type SortMode } from "@/lib/layout";
-import { uid } from "@/lib/utils";
+import { hexToRgb, uid } from "@/lib/utils";
 
 type IntroPhase = "wave" | "dots" | "expand" | "done";
 
@@ -90,8 +97,15 @@ export default function App() {
     const el = canvasRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
+    const dotPx = DOT_SIZE_PX[settings.dotSize];
     setCollections((prev) => {
-      const positions = computeSortedPositions(prev, mode, r.width, r.height);
+      const positions = computeSortedPositions(
+        prev,
+        mode,
+        r.width,
+        r.height,
+        dotPx
+      );
       return prev.map((c) => {
         const p = positions.get(c.id);
         return p ? { ...c, position: p } : c;
@@ -123,6 +137,27 @@ export default function App() {
   };
 
   const addingCollection = collections.find((c) => c.id === addingTo);
+
+  const palette = THEMES[settings.theme];
+  const accentRgb = hexToRgb(palette.from);
+  const accentDeepRgb = palette.overlayRgb;
+
+  // Mirror theme vars onto :root so portal-rendered overlays (Radix
+  // Popover, Tooltip, Dialog) inherit them. The frame container alone
+  // isn't enough because portals attach to document.body, outside it.
+  useEffect(() => {
+    const root = document.documentElement.style;
+    root.setProperty("--overlay-rgb", accentDeepRgb);
+    root.setProperty("--overlay-opacity", settings.overlayOpacity.toString());
+    root.setProperty("--accent", palette.from);
+    root.setProperty("--accent-rgb", accentRgb);
+    root.setProperty("--accent-deep-rgb", accentDeepRgb);
+  }, [
+    palette.from,
+    accentRgb,
+    accentDeepRgb,
+    settings.overlayOpacity,
+  ]);
 
   return (
     <TooltipProvider delayDuration={250} skipDelayDuration={120}>
@@ -174,6 +209,7 @@ export default function App() {
           </TooltipTrigger>
           <TooltipContent side="right">Restore all</TooltipContent>
         </Tooltip>
+        <ThemePanel settings={settings} onChange={setSettings} />
       </div>
 
       {/* Right rail: vertically centered, mirrors the left rail. Holds the
