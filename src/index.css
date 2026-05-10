@@ -39,9 +39,9 @@
     background: radial-gradient(
       ellipse at 50% 0%,
       #ffffff 0%,
-      #f1d4bd 50%,
-      #e9be9b 75%,
-      #e2a87a 100%
+      rgb(var(--accent-rgb, 226 168 122) / 0.45) 50%,
+      rgb(var(--accent-rgb, 226 168 122) / 0.78) 75%,
+      var(--accent, #e2a87a) 100%
     );
   }
 
