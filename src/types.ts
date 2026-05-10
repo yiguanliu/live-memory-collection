@@ -21,6 +21,9 @@ export type ThemePalette = {
   to: string;
   /** Stroke color used for the wave + grid lines */
   line: string;
+  /** Space-separated RGB triplet (e.g. "180 104 43") for the photo
+   *  overlay tint at the bottom-left of cards. */
+  overlayRgb: string;
 };
 
 export const THEMES: Record<ThemeName, ThemePalette> = {
@@ -29,24 +32,28 @@ export const THEMES: Record<ThemeName, ThemePalette> = {
     via: "#d7baa2",
     to: "#cccbc9",
     line: "rgba(255,255,255,0.55)",
+    overlayRgb: "180 104 43",
   },
   mist: {
     from: "#a3b8d8",
     via: "#c8d3e6",
     to: "#dfe3eb",
     line: "rgba(255,255,255,0.55)",
+    overlayRgb: "92 110 158",
   },
   sage: {
     from: "#92b39a",
     via: "#bcccbb",
     to: "#dde2d8",
     line: "rgba(255,255,255,0.55)",
+    overlayRgb: "70 120 90",
   },
   plum: {
     from: "#9c7aa8",
     via: "#c2adcc",
     to: "#dad3df",
     line: "rgba(255,255,255,0.55)",
+    overlayRgb: "120 78 138",
   },
 };
 
@@ -57,6 +64,8 @@ export type Settings = {
   showWaves: boolean;
   theme: ThemeName;
   dotSize: DotSize;
+  /** Photo overlay tint opacity, 0 (none) → 1 (fully opaque). */
+  overlayOpacity: number;
 };
 
 export type Collection = {
@@ -80,4 +89,5 @@ export const DEFAULT_SETTINGS: Settings = {
   showWaves: true,
   theme: "sunset",
   dotSize: "md",
+  overlayOpacity: 0.76,
 };

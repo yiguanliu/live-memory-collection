@@ -22,6 +22,7 @@ import { initialCollections } from "@/data";
 import {
   DEFAULT_SETTINGS,
   DOT_SIZE_PX,
+  THEMES,
   type Collection,
   type Settings,
 } from "@/types";
@@ -137,11 +138,19 @@ export default function App() {
 
   const addingCollection = collections.find((c) => c.id === addingTo);
 
+  const themeOverlay = THEMES[settings.theme].overlayRgb;
+
   return (
     <TooltipProvider delayDuration={250} skipDelayDuration={120}>
     <div
       className="relative h-full w-full overflow-hidden"
-      style={patternBackground(settings)}
+      style={
+        {
+          ...patternBackground(settings),
+          "--overlay-rgb": themeOverlay,
+          "--overlay-opacity": settings.overlayOpacity.toString(),
+        } as React.CSSProperties
+      }
     >
       {/* Crosshair + circle reference (subtle) */}
       <div className="pointer-events-none absolute inset-0">
